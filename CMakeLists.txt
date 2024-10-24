@@ -3,5 +3,7 @@ project(TerminalPlusPlus)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(TerminalPlusPlus example.cpp
-        TerminalPlusPlus.hpp)
+add_executable(TerminalPlusPlus src/example.cpp
+        src/Terminal++.hpp)
+
+include_directories(src)

@@ -3,14 +3,6 @@
 
 **Terminal++** is a simple terminal utility that provides various functionalities for text output and cursor manipulation in terminal applications. It is cross-platform, working on both Windows and UNIX-like systems, and leverages ANSI escape codes for coloring and formatting.
 
-## Table of Contents
-- [Features](#features)
-- [Installation](#installation)
-- [Usage Examples](#examples)
-- [Supported Colors](#supported-colors)
-- [Compiling](#compiling)
-- [Conclusion](#conclusion)
-
 ## Features
 
 - Clear the terminal screen.
@@ -19,17 +11,9 @@
 - Print bold text.
 - Get the terminal size.
 - Hide and show the cursor.
-- Read characters from unbuffered input.
+- Read a single character without waiting for the Enter key.
 
-## Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/BahaaMohamed98/TerminalPlusPlus
-   cd TerminalPlusPlus
-   ```
-2. Include `Terminal++.hpp` in your project.
-
-## Examples
+## Example Snippets
 
 #### Clear the Screen
 
@@ -119,6 +103,6 @@ To compile your code with the `Terminal++` utility, use the following command:
 g++ -o example example.cpp
 ```
 
-## Conclusion
+### Conclusion
 
 Terminal++ is a straightforward and efficient way to enhance your terminal applications with various functionalities and color support. Enjoy building your terminal-based applications!
