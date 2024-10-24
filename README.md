@@ -12,6 +12,8 @@
 - Get the terminal size.
 - Hide and show the cursor.
 - Read a single character without waiting for the Enter key.
+- Sleep for a specified number of milliseconds.
+- Run tasks asynchronously without blocking the main thread.
 
 ## Example Snippets
 
@@ -37,7 +39,7 @@ You can print text using different colors. Here's how to print "Hello, Terminal+
 
 ```cpp
 Terminal terminal;
-terminal.setColor(Terminal::Green);
+terminal.setColor(Terminal::Color::Green);
 terminal.println("Hello, Terminal++!");
 ```
 
@@ -46,7 +48,7 @@ terminal.println("Hello, Terminal++!");
 To print bold text, you can do the following:
 
 ```cpp
-terminal.setColor(Terminal::Cyan, true);
+terminal.setColor(Terminal::Color::Cyan, true);
 terminal.println("This is bold cyan text!");
 ```
 
@@ -82,18 +84,41 @@ char input = Terminal::getChar();
 terminal.println("You pressed: ", input);
 ```
 
+#### Sleep for a Specified Duration
+
+To pause execution for a certain number of milliseconds:
+
+```cpp
+Terminal::sleep(3000); // Sleep for 3 seconds
+terminal.println("Awoke after 3 seconds!");
+```
+
+#### Run Tasks Asynchronously
+
+You can run tasks in the background without blocking the main thread:
+
+```cpp
+terminal.nonBlock([]() {
+    Terminal threadTerminal; // Create a new Terminal instance for this thread
+    threadTerminal.setColor(Terminal::Color::Red);
+    threadTerminal.println("Asynchronous task completed after 2 seconds.");
+    Terminal::sleep(2000);
+    threadTerminal.println("This message comes from the asynchronous thread.");
+});
+```
+
 ## Supported Colors
 
 The following colors are available:
 
-- **Red**: `Terminal::Red`
-- **Green**: `Terminal::Green`
-- **Yellow**: `Terminal::Yellow`
-- **Blue**: `Terminal::Blue`
-- **Magenta**: `Terminal::Magenta`
-- **Cyan**: `Terminal::Cyan`
-- **White**: `Terminal::White`
 - **Reset**: `Terminal::Reset` (to reset to default color)
+- **Red**: `Terminal::Color::Red`
+- **Green**: `Terminal::Color::Green`
+- **Yellow**: `Terminal::Color::Yellow`
+- **Blue**: `Terminal::Color::Blue`
+- **Magenta**: `Terminal::Color::Magenta`
+- **Cyan**: `Terminal::Color::Cyan`
+- **White**: `Terminal::Color::White`
 
 ## Compiling
 
