@@ -1,4 +1,4 @@
-#include "Terminal.hpp"
+#include "TerminalPlusPlus.hpp"
 
 int main() {
     Terminal terminal;
