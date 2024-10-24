@@ -7,6 +7,9 @@
 - [Features](#features)
 - [Installation](#installation)
 - [Usage Examples](#examples)
+- [Supported Colors](#supported-colors)
+- [Compiling](#compiling)
+- [Conclusion](#conclusion)
 
 ## Features
 
@@ -16,7 +19,7 @@
 - Print bold text.
 - Get the terminal size.
 - Hide and show the cursor.
-- Read a single character without waiting for the Enter key.
+- Read characters from unbuffered input.
 
 ## Installation
 1. Clone the repository:
@@ -116,6 +119,6 @@ To compile your code with the `Terminal++` utility, use the following command:
 g++ -o example example.cpp
 ```
 
-### Conclusion
+## Conclusion
 
 Terminal++ is a straightforward and efficient way to enhance your terminal applications with various functionalities and color support. Enjoy building your terminal-based applications!
