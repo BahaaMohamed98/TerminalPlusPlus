@@ -38,6 +38,33 @@ int main() {
     Terminal::hideCursor();
     terminal.println("The cursor is now hidden.");
 
+    // Demonstrating sleep function
+    terminal.println("Sleeping for 3 seconds...");
+    Terminal::sleep(3000); // Sleep for 3000 milliseconds (3 seconds)
+    terminal.println("Awoke after 3 seconds!");
+
+    // Using nonBlock to run a task asynchronously with a separate Terminal instance
+    terminal.nonBlock([]() {
+        Terminal threadTerminal; // Create a new Terminal instance for this thread
+        threadTerminal.setColor(Terminal::Color::Red); // Set color for this thread
+        threadTerminal.println("Asynchronous task completed after 2 seconds.");
+        Terminal::sleep(2000); // Sleep for 2 seconds in a separate thread
+        threadTerminal.println("This message comes from the asynchronous thread.");
+    });
+
+    // Additional nonBlock example with separate Terminal instance
+    terminal.nonBlock([]() {
+        Terminal threadTerminal; // Create a new Terminal instance for this thread
+        threadTerminal.setColor(Terminal::Color::Cyan); // Set color for this thread
+        for (int i = 1; i <= 5; ++i) {
+            Terminal::sleep(1000); // Sleep for 1 second
+            threadTerminal.println("Count from non-blocking task: ", i);
+        }
+    });
+
+    // Continue interacting with the terminal while the non-blocking tasks run
+    terminal.println("You can keep using the terminal while tasks run in the background.");
+
     // Show the cursor again
     Terminal::showCursor();
     terminal.println("The cursor is now visible again.");

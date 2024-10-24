@@ -12,7 +12,9 @@
  */
 
 #include <cstdlib>
+#include <functional>
 #include <iostream>
+#include <thread>
 #include <utility>
 
 #ifdef _WIN32
@@ -33,6 +35,8 @@ class Terminal {
     int currentColor; // Holds the current text color
     int width, height; // Stores the dimensions of the terminal
     bool boldColor; // Indicates if the current text is bold
+
+    std::vector<std::thread> threads;
 
     // Converts a color and boldness state to ANSI escape codes
     static std::string ColorToString(const int& color, const bool& isBold = false) {
@@ -79,6 +83,14 @@ public:
         height = size.rows;
     }
 
+    // Destructor ensures that all spawned threads are joined before the object is destroyed
+    // to prevent potential crashes from detached threads running after the object is deleted
+    ~Terminal() {
+        for (auto& thread : threads)
+            if (thread.joinable())
+                thread.join();
+    }
+
     // returns terminal size pair of (width, height)
     std::pair<int, int> size() {
         return {width, height};
@@ -91,6 +103,18 @@ public:
 #else // for linux and macOS
         system("clear");
 #endif
+    }
+
+    // Sleeps for specified number of milliseconds
+    static void sleep(const int& milliseconds) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+    }
+
+    // Runs a given lambda function on a separate thread
+    void nonBlock(const std::function<void()>& task) {
+        // Adds a new thread to the threads vector for the task to be executed asynchronously
+        // This ensures that the thread can be joined later when the Terminal object is destroyed
+        threads.emplace_back(task);
     }
 
     // Moves the cursor to the specified (x, y) position in the terminal
