@@ -86,9 +86,18 @@ public:
     // Destructor ensures that all spawned threads are joined before the object is destroyed
     // to prevent potential crashes from detached threads running after the object is deleted
     ~Terminal() {
-        for (auto& thread : threads)
-            if (thread.joinable())
+        awaitCompletion();
+    }
+
+    // Waits for all non-blocking tasks to finish before continuing
+    // Call this after starting tasks with nonBlock()
+    void awaitCompletion() {
+        for (auto& thread : threads) {
+            if (thread.joinable()) {
                 thread.join();
+            }
+        }
+        threads.clear(); // Clear the threads vector after joining
     }
 
     // returns terminal size pair of (width, height)
