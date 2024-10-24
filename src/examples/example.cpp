@@ -1,4 +1,4 @@
-#include "Terminal++.hpp"
+#include "../Terminal++.hpp"
 
 int main() {
     // Create a Terminal object to work with

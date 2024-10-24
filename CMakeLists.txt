@@ -3,7 +3,6 @@ project(TerminalPlusPlus)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(TerminalPlusPlus src/example.cpp
-        src/Terminal++.hpp)
-
+add_executable(TerminalPlusPlus src/examples/example.cpp)
+add_executable(CountDown src/examples/countDown.cpp)
 include_directories(src)
