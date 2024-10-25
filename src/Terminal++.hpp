@@ -134,6 +134,25 @@ public:
         return resized;
     }
 
+    // returns true if the terminal was resized
+    // should be called using nonBlock as it blocks the thread
+    // should be called from within a loop
+    [[nodiscard]] static bool keyPressed() {
+#ifdef _WIN32
+        return _kbhit();  // Windows
+#else
+        termios oldt{}, newt{};
+        int bytesAvailable = 0;
+        tcgetattr(STDIN_FILENO, &oldt);
+        newt = oldt;
+        newt.c_lflag &= ~(ICANON | ECHO);
+        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+        ioctl(STDIN_FILENO, FIONREAD, &bytesAvailable);
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+        return bytesAvailable > 0; // Linux/macOS
+#endif
+    }
+
     // Clears the terminal screen
     static void clearScreen() {
 #ifdef _WIN32 // For Windows
