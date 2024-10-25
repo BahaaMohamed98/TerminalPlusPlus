@@ -44,6 +44,7 @@ enum class Color { // Enum for terminal text colors
 class Terminal {
     Color currentColor; // Holds the current text color
     bool boldColor; // Indicates if the current text is bold
+    int width, height;
 
     std::vector<std::thread> threads;
 
@@ -61,7 +62,11 @@ class Terminal {
 
 public:
     explicit Terminal(const Color& color = Color::Reset)
-        : currentColor(color), boldColor(false) {}
+        : currentColor(color), boldColor(false) {
+        auto [nwidth, nheight] = size();
+        height = nheight;
+        width = nwidth;
+    }
 
     // Destructor ensures that all spawned threads are joined before the object is destroyed
     // to prevent potential crashes from detached threads running after the object is deleted
@@ -99,6 +104,14 @@ public:
 #endif
 
         return size;
+    }
+
+    // returns true if the terminal was resized
+    [[nodiscard]] bool isResized() {
+        auto [nwidth, nheight] = size();
+        const bool ret = nheight != height or nwidth != width;
+        width = nwidth, height = nheight;
+        return ret;
     }
 
     // Clears the terminal screen
