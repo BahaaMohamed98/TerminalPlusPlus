@@ -14,8 +14,9 @@
 - Read a single character without waiting for the Enter key.
 - Sleep for a specified number of milliseconds.
 - Run tasks asynchronously without blocking the main thread.
+- Support for handling keyboard inputs.
 
-## Example Snippets
+## Examples
 
 #### Clear the Screen
 
@@ -111,14 +112,24 @@ terminal.nonBlock([]() {
 
 The following colors are available:
 
-- **Reset**: `Terminal::Reset` (to reset to default color)
-- **Red**: `Terminal::Color::Red`
-- **Green**: `Terminal::Color::Green`
-- **Yellow**: `Terminal::Color::Yellow`
-- **Blue**: `Terminal::Color::Blue`
-- **Magenta**: `Terminal::Color::Magenta`
-- **Cyan**: `Terminal::Color::Cyan`
-- **White**: `Terminal::Color::White`
+- **Reset**: `Color::Reset` (to reset to default color)
+- **Red**: `Color::Red`
+- **Green**: `Color::Green`
+- **Yellow**: `Color::Yellow`
+- **Blue**: `Color::Blue`
+- **Magenta**: `Color::Magenta`
+- **Cyan**: `Color::Cyan`
+- **White**: `Color::White`
+
+## Supported keyboard Buttons
+
+The following keyboard buttons are supported for handling inputs:
+
+- **Backspace**: `keyCode::Backspace`
+- **Enter**: `keyCode::Enter`
+- **Escape**: `keyCode::Esc`
+- **Tab**: `keyCode::Tab`
+- **Space**: `keyCode::Space`
 
 ## Compiling
 
