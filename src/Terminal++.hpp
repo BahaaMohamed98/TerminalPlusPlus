@@ -30,7 +30,8 @@
 
 #endif
 
-enum class Color { // Enum for terminal text colors
+// Enum for terminal text colors
+enum Color {
     Reset, // Resets to the normal color
     Red = 31,
     Green,
@@ -41,31 +42,47 @@ enum class Color { // Enum for terminal text colors
     White,
 };
 
+// Enum for keyboard buttons' keyCodes
+enum keyCode {
+#ifdef _WIN32
+    Backspace = 8,
+    Enter = 13,
+#else
+    Backspace = 127,
+    Enter = 10,
+#endif
+    Esc = 27,
+    Tab = 9,
+    Space = 32,
+};
+
 class Terminal {
     Color currentColor; // Holds the current text color
     bool boldColor; // Indicates if the current text is bold
-    int width, height;
-
-    std::vector<std::thread> threads;
 
     struct TerminalSize {
         int width;
         int height;
+
+        bool operator!=(const TerminalSize& other) const {
+            return width != other.width or height != other.height;
+        }
     };
+
+    TerminalSize dimensions{};
+    std::vector<std::thread> threads;
 
     // Converts a color and boldness state to ANSI escape codes
     static std::string ColorToString(const Color& color, const bool& isBold = false) {
         if (color == Color::Reset)
             return "\033[0m";
-        return "\033[" + std::to_string(isBold) + ";" + std::to_string(static_cast<int>(color)) + "m";
+        return "\033[" + std::to_string(isBold) + ";" + std::to_string(color) + "m";
     }
 
 public:
     explicit Terminal(const Color& color = Color::Reset)
         : currentColor(color), boldColor(false) {
-        auto [nwidth, nheight] = size();
-        height = nheight;
-        width = nwidth;
+        dimensions = size();
     }
 
     // Destructor ensures that all spawned threads are joined before the object is destroyed
@@ -107,11 +124,14 @@ public:
     }
 
     // returns true if the terminal was resized
+    // should be called from within a loop
     [[nodiscard]] bool isResized() {
-        auto [nwidth, nheight] = size();
-        const bool ret = nheight != height or nwidth != width;
-        width = nwidth, height = nheight;
-        return ret;
+        const auto ndimensions = size();
+
+        const bool resized = ndimensions != dimensions;
+        dimensions = ndimensions;
+
+        return resized;
     }
 
     // Clears the terminal screen
@@ -188,7 +208,7 @@ public:
 #ifdef _WIN32
         return getch();
 #else
-        struct termios oldattr{}, newattr{};
+        termios oldattr{}, newattr{};
         tcgetattr(STDIN_FILENO, &oldattr); // Get current terminal attributes
         newattr = oldattr;
         newattr.c_lflag &= ~(ICANON | ECHO); // Disable canonical mode and echoing
@@ -197,13 +217,13 @@ public:
         tcsetattr(STDIN_FILENO, TCSANOW, &oldattr); // Restore original attributes
         return static_cast<char>(ch);
 #endif
-
     }
 
     // gets a string from stdin
     static std::string getString(const std::string& prompt = "") {
         std::cout << prompt;
         std::string str;
+
         std::cin >> str;
         std::cin.ignore();
         return str;
@@ -213,6 +233,7 @@ public:
     static std::string getLine(const std::string& prompt = "") {
         std::cout << prompt;
         std::string line;
+
         getline(std::cin, line, '\n');
         return line;
     }
