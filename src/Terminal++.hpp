@@ -15,7 +15,6 @@
 #include <functional>
 #include <iostream>
 #include <thread>
-#include <utility>
 
 #ifdef _WIN32
 
@@ -31,7 +30,7 @@
 
 #endif
 
-enum Color { // Enum for terminal text colors
+enum class Color { // Enum for terminal text colors
     Reset, // Resets to the normal color
     Red = 31,
     Green,
@@ -43,21 +42,26 @@ enum Color { // Enum for terminal text colors
 };
 
 class Terminal {
-    int currentColor; // Holds the current text color
+    Color currentColor; // Holds the current text color
     bool boldColor; // Indicates if the current text is bold
 
     std::vector<std::thread> threads;
 
+    struct TerminalSize {
+        int width;
+        int height;
+    };
+
     // Converts a color and boldness state to ANSI escape codes
-    static std::string ColorToString(const int& color, const bool& isBold = false) {
+    static std::string ColorToString(const Color& color, const bool& isBold = false) {
         if (color == Color::Reset)
             return "\033[0m";
-        return "\033[" + std::to_string(isBold) + ";" + std::to_string(color) + "m";
+        return "\033[" + std::to_string(isBold) + ";" + std::to_string(static_cast<int>(color)) + "m";
     }
 
 public:
-    Terminal()
-        : currentColor(Color::Reset), boldColor(false) {}
+    explicit Terminal(const Color& color = Color::Reset)
+        : currentColor(color), boldColor(false) {}
 
     // Destructor ensures that all spawned threads are joined before the object is destroyed
     // to prevent potential crashes from detached threads running after the object is deleted
@@ -76,29 +80,25 @@ public:
         threads.clear(); // Clear the threads vector after joining
     }
 
-    // returns terminal size pair of (width, height)
-    static std::pair<int, int> size() {
-        struct TerminalSize {
-            int rows;
-            int cols;
-        };
+    // returns terminal size struct of (width, height)
+    static TerminalSize size() {
         TerminalSize size{0, 0};
 
 #ifdef _WIN32
         CONSOLE_SCREEN_BUFFER_INFO csbi;
         if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
-            size.cols = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-            size.rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+            size.width = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+            size.height = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
         }
 #else
-        struct winsize w{};
+        winsize w{};
         if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0) {
-            size.rows = w.ws_row;
-            size.cols = w.ws_col;
+            size.height = w.ws_row;
+            size.width = w.ws_col;
         }
 #endif
 
-        return {size.cols, size.rows};
+        return size;
     }
 
     // Clears the terminal screen
@@ -136,7 +136,7 @@ public:
     // Prints multiple arguments to the terminal
     template<typename T, typename... Args>
     void print(const T& arg, const Args&... args) {
-        std::cout << arg;
+        print(arg);
         print(args...);
     }
 
@@ -148,7 +148,7 @@ public:
     template<typename... Args>
     void println(const Args&... args) {
         print(args...);
-        std::cout << "\n";
+        print("\n");
     }
 
     // Flushes the output stream
@@ -185,6 +185,23 @@ public:
         return static_cast<char>(ch);
 #endif
 
+    }
+
+    // gets a string from stdin
+    static std::string getString(const std::string& prompt = "") {
+        std::cout << prompt;
+        std::string str;
+        std::cin >> str;
+        std::cin.ignore();
+        return str;
+    }
+
+    // gets a full line from stdin
+    static std::string getLine(const std::string& prompt = "") {
+        std::cout << prompt;
+        std::string line;
+        getline(std::cin, line, '\n');
+        return line;
     }
 };
 
