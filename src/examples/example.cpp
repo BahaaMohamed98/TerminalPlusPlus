@@ -8,7 +8,7 @@ int main() {
     Terminal::clearScreen();
 
     // Get and display the terminal size
-    auto [width, height] = terminal.size();
+    auto [width, height] = Terminal::size();
     terminal.println("Terminal Size: ", width, " x ", height);
 
     // Set the text color to green and print a message
