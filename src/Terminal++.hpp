@@ -31,9 +31,19 @@
 
 #endif
 
+enum Color { // Enum for terminal text colors
+    Reset, // Resets to the normal color
+    Red = 31,
+    Green,
+    Yellow,
+    Blue,
+    Magenta,
+    Cyan,
+    White,
+};
+
 class Terminal {
     int currentColor; // Holds the current text color
-    int width, height; // Stores the dimensions of the terminal
     bool boldColor; // Indicates if the current text is bold
 
     std::vector<std::thread> threads;
@@ -46,19 +56,28 @@ class Terminal {
     }
 
 public:
-    enum Color { // Enum for terminal text colors
-        Reset, // Resets to the normal color
-        Red = 31,
-        Green,
-        Yellow,
-        Blue,
-        Magenta,
-        Cyan,
-        White,
-    };
-
     Terminal()
-        : currentColor(Color::Reset), boldColor(false) {
+        : currentColor(Color::Reset), boldColor(false) {}
+
+    // Destructor ensures that all spawned threads are joined before the object is destroyed
+    // to prevent potential crashes from detached threads running after the object is deleted
+    ~Terminal() {
+        awaitCompletion();
+    }
+
+    // Waits for all non-blocking tasks to finish before continuing
+    // Call this after starting tasks with nonBlock()
+    void awaitCompletion() {
+        for (auto& thread : threads) {
+            if (thread.joinable()) {
+                thread.join();
+            }
+        }
+        threads.clear(); // Clear the threads vector after joining
+    }
+
+    // returns terminal size pair of (width, height)
+    static std::pair<int, int> size() {
         struct TerminalSize {
             int rows;
             int cols;
@@ -79,30 +98,7 @@ public:
         }
 #endif
 
-        width = size.cols;
-        height = size.rows;
-    }
-
-    // Destructor ensures that all spawned threads are joined before the object is destroyed
-    // to prevent potential crashes from detached threads running after the object is deleted
-    ~Terminal() {
-        awaitCompletion();
-    }
-
-    // Waits for all non-blocking tasks to finish before continuing
-    // Call this after starting tasks with nonBlock()
-    void awaitCompletion() {
-        for (auto& thread : threads) {
-            if (thread.joinable()) {
-                thread.join();
-            }
-        }
-        threads.clear(); // Clear the threads vector after joining
-    }
-
-    // returns terminal size pair of (width, height)
-    std::pair<int, int> size() {
-        return {width, height};
+        return {size.cols, size.rows};
     }
 
     // Clears the terminal screen
@@ -129,7 +125,7 @@ public:
     // Moves the cursor to the specified (x, y) position in the terminal
     // starting from (1, 1) at the top left corner of the terminal
     static void moveTo(const int& x, const int& y) {
-        std::cout << "\033[" << x << ";" << y << "H";
+        std::cout << "\033[" << y << ";" << x << "H";
     }
 
     template<class T>

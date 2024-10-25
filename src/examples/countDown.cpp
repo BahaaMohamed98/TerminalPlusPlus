@@ -2,7 +2,7 @@
 
 void countdown(const int seconds) {
     Terminal terminal; // Create a Terminal object for this thread
-    terminal.setColor(Terminal::Color::Cyan); // Set text color to Cyan
+    terminal.setColor(Color::Cyan); // Set text color to Cyan
     Terminal::clearScreen();
     Terminal::hideCursor(); // hiding the cursor
 
@@ -23,7 +23,7 @@ void countdown(const int seconds) {
     Terminal::showCursor();
 
     Terminal::moveTo(1, 1); // Move cursor to the top-left corner
-    terminal.setColor(Terminal::Color::Green); // Change color to Green for completion
+    terminal.setColor(Color::Green); // Change color to Green for completion
     terminal.println("Time's up!"); // Print completion message
 }
 
