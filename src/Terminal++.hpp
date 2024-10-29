@@ -46,19 +46,29 @@ enum class Color {
 enum keyCode {
 #ifdef _WIN32
     Backspace = 8,
-    Enter = 13,
+    Enter     = 13,
 #else
     Backspace = 127,
-    Enter = 10,
+    Enter     = 10,
 #endif
-    Esc = 27,
-    Tab = 9,
+    Esc   = 27,
+    Tab   = 9,
     Space = 32,
+};
+
+// Options for clearScreen()
+// "All" for a complete clear including history
+// "Purge" for clearing the visible screen while preserving scrollback
+// "Line" for clearing just the current line
+enum ClearType {
+    All,   // clear all plus history
+    Purge, // clear the screen leaving history
+    Line,  // clear the current line
 };
 
 class Terminal {
     Color currentColor; // Holds the current text color
-    bool boldColor; // Indicates if the current text is bold
+    bool isBoldColor;     // Indicates if the current text is bold
 
     struct TerminalSize {
         int width;
@@ -81,7 +91,7 @@ class Terminal {
 
 public:
     explicit Terminal(const Color& color = Color::Reset)
-        : currentColor(color), boldColor(false) {
+        : currentColor(color), isBoldColor(false) {
         dimensions = size();
     }
 
@@ -155,12 +165,22 @@ public:
     }
 
     // Clears the terminal screen
-    static void clearScreen() {
+    static void clearScreen(const ClearType& cleartype = ClearType::All) {
+        switch (cleartype) {
+            case All:
 #ifdef _WIN32 // For Windows
-            system("cls");
+                system("cls");
 #else // for linux and macOS
-        system("clear");
+                system("clear");
 #endif
+                break;
+            case Purge:
+                std::cout << "\033[2J" << std::flush;
+                break;
+            case Line:
+                std::cout << "\33[2K\r" << std::flush;
+                break;
+        }
     }
 
     // Sleeps for specified number of milliseconds
@@ -184,7 +204,7 @@ public:
 
     template<class T>
     Terminal& print(const T& arg) {
-        std::cout << ColorToString(currentColor, boldColor) << arg;
+        std::cout << ColorToString(currentColor, isBoldColor) << arg;
         return *this;
     }
 
@@ -225,7 +245,7 @@ public:
     // Sets the current text color and boldness
     Terminal& setColor(const Color& color, const bool& isBold = false) {
         currentColor = color;
-        boldColor = isBold;
+        isBoldColor = isBold;
         return *this;
     }
 
@@ -237,9 +257,9 @@ public:
         termios oldattr{}, newattr{};
         tcgetattr(STDIN_FILENO, &oldattr); // Get current terminal attributes
         newattr = oldattr;
-        newattr.c_lflag &= ~(ICANON | ECHO); // Disable canonical mode and echoing
+        newattr.c_lflag &= ~(ICANON | ECHO);        // Disable canonical mode and echoing
         tcsetattr(STDIN_FILENO, TCSANOW, &newattr); // Apply new attributes immediately
-        const int ch = getchar(); // Read a single character
+        const int ch = getchar();                   // Read a single character
         tcsetattr(STDIN_FILENO, TCSANOW, &oldattr); // Restore original attributes
         return static_cast<char>(ch);
 #endif
