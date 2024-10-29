@@ -31,7 +31,7 @@
 #endif
 
 // Enum for terminal text colors
-enum Color {
+enum class Color {
     Reset, // Resets to the normal color
     Red = 31,
     Green,
@@ -76,7 +76,7 @@ class Terminal {
     static std::string ColorToString(const Color& color, const bool& isBold = false) {
         if (color == Color::Reset)
             return "\033[0m";
-        return "\033[" + std::to_string(isBold) + ";" + std::to_string(color) + "m";
+        return "\033[" + std::to_string(isBold) + ";" + std::to_string(static_cast<int>(color)) + "m";
     }
 
 public:
@@ -93,13 +93,14 @@ public:
 
     // Waits for all non-blocking tasks to finish before continuing
     // Call this after starting tasks with nonBlock()
-    void awaitCompletion() {
+    Terminal& awaitCompletion() {
         for (auto& thread : threads) {
             if (thread.joinable()) {
                 thread.join();
             }
         }
         threads.clear(); // Clear the threads vector after joining
+        return *this;
     }
 
     // returns terminal size struct of (width, height)
@@ -168,10 +169,11 @@ public:
     }
 
     // Runs a given lambda function on a separate thread
-    void nonBlock(const std::function<void()>& task) {
+    Terminal& nonBlock(const std::function<void()>& task) {
         // Adds a new thread to the threads vector for the task to be executed asynchronously
         // This ensures that the thread can be joined later when the Terminal object is destroyed
         threads.emplace_back(task);
+        return *this;
     }
 
     // Moves the cursor to the specified (x, y) position in the terminal
@@ -181,26 +183,30 @@ public:
     }
 
     template<class T>
-    void print(const T& arg) {
+    Terminal& print(const T& arg) {
         std::cout << ColorToString(currentColor, boldColor) << arg;
+        return *this;
     }
 
     // Prints multiple arguments to the terminal
     template<typename T, typename... Args>
-    void print(const T& arg, const Args&... args) {
+    Terminal& print(const T& arg, const Args&... args) {
         print(arg);
         print(args...);
+        return *this;
     }
 
-    void println() {
+    Terminal& println() {
         print("\n");
+        return *this;
     }
 
     // Prints multiple arguments followed by a newline
     template<typename... Args>
-    void println(const Args&... args) {
+    Terminal& println(const Args&... args) {
         print(args...);
         print("\n");
+        return *this;
     }
 
     // Flushes the output stream
@@ -217,9 +223,10 @@ public:
     }
 
     // Sets the current text color and boldness
-    void setColor(const Color& color, const bool& isBold = false) {
+    Terminal& setColor(const Color& color, const bool& isBold = false) {
         currentColor = color;
         boldColor = isBold;
+        return *this;
     }
 
     // Reads a single character from the terminal unbuffered input
