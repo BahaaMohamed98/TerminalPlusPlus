@@ -12,19 +12,19 @@ int main() {
     terminal.println("Terminal Size: ", width, " x ", height);
 
     // Set the text color to green and print a message
-    terminal.setColor(Color::Green);
+    terminal.setTextColor(Color::Green);
     terminal.println("Welcome to Terminal++!");
 
     // Set color to blue and print another message
-    terminal.setColor(Color::Blue);
+    terminal.setTextColor(Color::Blue);
     terminal.println("This library supports various colors.");
 
     // Set color to yellow and bold
-    terminal.setColor(Color::Yellow, true);
+    terminal.setTextColor(Color::Yellow, true);
     terminal.println("You can also print bold text!");
 
     // Reset to normal color
-    terminal.setColor(Color::Reset);
+    terminal.setTextColor(Color::Reset);
 
     // Print a message indicating how to use the library
     terminal.println("Use Terminal::clearScreen() to clear the screen.");
@@ -46,7 +46,7 @@ int main() {
     // Using nonBlock to run a task asynchronously with a separate Terminal instance
     terminal.nonBlock([]() {
         Terminal threadTerminal; // Create a new Terminal instance for this thread
-        threadTerminal.setColor(Color::Red); // Set color for this thread
+        threadTerminal.setTextColor(Color::Red); // Set color for this thread
         threadTerminal.println("Asynchronous task completed after 2 seconds.");
         Terminal::sleep(2000); // Sleep for 2 seconds in a separate thread
         threadTerminal.println("This message comes from the asynchronous thread.");
@@ -55,7 +55,7 @@ int main() {
     // Additional nonBlock example with separate Terminal instance
     terminal.nonBlock([]() {
         Terminal threadTerminal; // Create a new Terminal instance for this thread
-        threadTerminal.setColor(Color::Cyan); // Set color for this thread
+        threadTerminal.setTextColor(Color::Cyan); // Set color for this thread
         for (int i = 1; i <= 5; ++i) {
             Terminal::sleep(1000); // Sleep for 1 second
             threadTerminal.println("Count from non-blocking task: ", i);
