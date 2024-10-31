@@ -32,14 +32,15 @@
 
 // Enum for terminal text colors
 enum class Color {
-    Reset, // Resets to the normal color
-    Red = 31,
+    Black = 30,
+    Red,
     Green,
     Yellow,
     Blue,
     Magenta,
     Cyan,
     White,
+    Reset = 0, // Resets to the normal color
 };
 
 // Enum for keyboard buttons' keyCodes
@@ -67,8 +68,9 @@ enum ClearType {
 };
 
 class Terminal {
-    Color currentColor; // Holds the current text color
-    bool isBoldColor;     // Indicates if the current text is bold
+    Color textColor;       // Holds the current text color
+    bool isBoldColor;      // Indicates if the current text is bold
+    Color backgroundColor; // Holds the current background color
 
     struct TerminalSize {
         int width;
@@ -83,15 +85,21 @@ class Terminal {
     std::vector<std::thread> threads;
 
     // Converts a color and boldness state to ANSI escape codes
-    static std::string ColorToString(const Color& color, const bool& isBold = false) {
+    static std::string textColorToString(const Color& color, const bool& isBold = false) {
         if (color == Color::Reset)
             return "\033[0m";
-        return "\033[" + std::to_string(isBold) + ";" + std::to_string(static_cast<int>(color)) + "m";
+        return "\033[" + std::string{isBold ? "1" : "22"} + ";" + std::to_string(static_cast<int>(color)) + "m";
+    }
+
+    static std::string backgroundColorToString(const Color& color) {
+        if (color == Color::Reset)
+            return textColorToString(color);
+        return "\033[" + std::to_string(static_cast<int>(color) + 10) + "m";
     }
 
 public:
-    explicit Terminal(const Color& color = Color::Reset)
-        : currentColor(color), isBoldColor(false) {
+    explicit Terminal(const Color& textColor = Color::Reset, const Color& backgroundColor = Color::Reset)
+        : textColor(textColor), isBoldColor(false), backgroundColor(backgroundColor) {
         dimensions = size();
     }
 
@@ -202,13 +210,20 @@ public:
         std::cout << "\033[" << y << ";" << x << "H";
     }
 
+    // Prints multiple arguments to the terminal
     template<class T>
     Terminal& print(const T& arg) {
-        std::cout << ColorToString(currentColor, isBoldColor) << arg;
+        std::cout << backgroundColorToString(backgroundColor);
+
+        if (textColor != Color::Reset) // if color is not reset then set it as it will affect the background color
+            std::cout << textColorToString(textColor, isBoldColor);
+
+        std::cout << arg
+                << backgroundColorToString(Color::Reset); // reset colors again
+
         return *this;
     }
 
-    // Prints multiple arguments to the terminal
     template<typename T, typename... Args>
     Terminal& print(const T& arg, const Args&... args) {
         print(arg);
@@ -243,9 +258,14 @@ public:
     }
 
     // Sets the current text color and boldness
-    Terminal& setColor(const Color& color, const bool& isBold = false) {
-        currentColor = color;
+    Terminal& setTextColor(const Color& textColor, const bool& isBold = false) {
+        this->textColor = textColor;
         isBoldColor = isBold;
+        return *this;
+    }
+
+    Terminal& setBackgroundColor(const Color& backgroundColor) {
+        this->backgroundColor = backgroundColor;
         return *this;
     }
 
