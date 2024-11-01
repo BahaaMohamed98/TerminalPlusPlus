@@ -81,9 +81,8 @@ enum ClearType {
 };
 
 class Terminal {
-    Color textColor;       // Holds the current text color
-    bool isBoldColor;      // Indicates if the current text is bold
-    Color backgroundColor; // Holds the current background color
+    std::string textColor;       // Holds the current text color
+    std::string backgroundColor; // Holds the current background color
     Style style;
 
     struct TerminalSize {
@@ -117,7 +116,8 @@ class Terminal {
 
 public:
     explicit Terminal(const Color& textColor = Color::Reset, const Color& backgroundColor = Color::Reset)
-        : textColor(textColor), isBoldColor(false), backgroundColor(backgroundColor) {
+        : textColor(textColorToString(textColor)), backgroundColor(backgroundColorToString(backgroundColor)),
+          style(Style::Normal) {
         dimensions = size();
     }
 
@@ -231,13 +231,13 @@ public:
     // Prints multiple arguments to the terminal
     template<class T>
     Terminal& print(const T& arg) {
-        std::cout << backgroundColorToString(backgroundColor);
+        std::cout << backgroundColor;
 
         if (style != Style::Normal)
             std::cout << styleToString(style);
 
-        if (textColor != Color::Reset) // if color is not reset then set it as it will affect the background color
-            std::cout << textColorToString(textColor, isBoldColor);
+        if (textColor != "\033[0m") // if color is not reset then set it as it will affect the background color
+            std::cout << textColor;
 
         std::cout << arg
                 << backgroundColorToString(Color::Reset); // reset colors again
@@ -280,16 +280,28 @@ public:
 
     // Sets the current text color and boldness
     Terminal& setTextColor(const Color& textColor, const bool& isBold = false) {
-        this->textColor = textColor;
-        isBoldColor = isBold;
+        this->textColor = textColorToString(textColor, isBold);
+        return *this;
+    }
+
+    // takes a number between 0 and 255 and sets it as text color
+    Terminal& setTextColor(const int& textColor) {
+        this->textColor = "\033[38;5;" + std::to_string(textColor) + "m";
         return *this;
     }
 
     Terminal& setBackgroundColor(const Color& backgroundColor) {
-        this->backgroundColor = backgroundColor;
+        this->backgroundColor = backgroundColorToString(backgroundColor);
         return *this;
     }
 
+    // takes a number between 0 and 255 and sets it as background color
+    Terminal& setBackgroundColor(const int& backgroundColor) {
+        this->backgroundColor = "\033[48;5;" + std::to_string(backgroundColor) + "m";
+        return *this;
+    }
+
+    // sets the text style
     Terminal& setStyle(const Style& style) {
         this->style = style;
         return *this;
