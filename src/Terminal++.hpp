@@ -280,7 +280,6 @@ public:
         std::cout << "\033[?25h";
     }
 
-
     // Sets the current text color and boldness
     Terminal& setTextColor(const Color& textColor, const bool& isBold = false) {
         this->textColor = textColorToString(textColor, isBold);
@@ -308,6 +307,12 @@ public:
     Terminal& setStyle(const Style& style) {
         this->style = style;
         return *this;
+    }
+
+    // sets the terminal title
+    // may print unwanted text on some terminals
+    static void setTitle(const std::string& title) {
+        std::cout << "\033]2;" << title << "\007" << flush;
     }
 
     // Reads a single character from the terminal unbuffered input
