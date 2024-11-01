@@ -94,32 +94,26 @@ class Terminal {
         }
     };
 
-    TerminalSize dimensions{};
+    TerminalSize dimensions;
     std::vector<std::thread> threads;
 
-    // Converts a color and boldness state to ANSI escape codes
-    static std::string textColorToString(const Color& color, const bool& isBold = false) {
-        if (color == Color::Reset)
-            return "\033[0m";
-        return "\033[" + std::string{isBold ? "1" : "22"} + ";" + std::to_string(static_cast<int>(color)) + "m";
+    // Converts a number into an ANSI escape code
+    static std::string ansiToString(const int& code) {
+        return "\033[" + std::to_string(code) + "m";
     }
 
+    // Converts a Color into a ANSI escape code for background
     static std::string backgroundColorToString(const Color& color) {
         if (color == Color::Reset)
-            return textColorToString(color);
-        return "\033[" + std::to_string(static_cast<int>(color) + 10) + "m";
-    }
-
-    static std::string styleToString(const Style& style) {
-        return "\033[" + std::to_string(static_cast<int>(style)) + "m";
+            return ansiToString(static_cast<int>(Color::Reset));
+        return ansiToString(static_cast<int>(color) + 10);
     }
 
 public:
     explicit Terminal(const Color& textColor = Color::Reset, const Color& backgroundColor = Color::Reset)
-        : textColor(textColorToString(textColor)), backgroundColor(backgroundColorToString(backgroundColor)),
-          style(Style::Normal) {
-        dimensions = size();
-    }
+        : textColor(ansiToString(static_cast<int>(textColor))),
+          backgroundColor(backgroundColorToString(backgroundColor)),
+          style(Style::Normal), dimensions(size()) {}
 
     // Destructor ensures that all spawned threads are joined before the object is destroyed
     // to prevent potential crashes from detached threads running after the object is deleted
@@ -234,13 +228,13 @@ public:
         std::cout << backgroundColor;
 
         if (style != Style::Normal)
-            std::cout << styleToString(style);
+            std::cout << ansiToString(static_cast<int>(style));
 
         if (textColor != "\033[0m") // if color is not reset then set it as it will affect the background color
             std::cout << textColor;
 
         std::cout << arg
-                << backgroundColorToString(Color::Reset); // reset colors again
+                << ansiToString(static_cast<int>(Color::Reset)); // reset colors again
 
         return *this;
     }
@@ -281,8 +275,8 @@ public:
     }
 
     // Sets the current text color and boldness
-    Terminal& setTextColor(const Color& textColor, const bool& isBold = false) {
-        this->textColor = textColorToString(textColor, isBold);
+    Terminal& setTextColor(const Color& textColor) {
+        this->textColor = ansiToString(static_cast<int>(textColor));
         return *this;
     }
 
@@ -312,7 +306,7 @@ public:
     // sets the terminal title
     // may print unwanted text on some terminals
     static void setTitle(const std::string& title) {
-        std::cout << "\033]2;" << title << "\007" << flush;
+        std::cout << "\033]2;" << title << "\007";
     }
 
     // Reads a single character from the terminal unbuffered input
