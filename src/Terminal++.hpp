@@ -270,13 +270,16 @@ public:
         std::cout.flush();
     }
 
+    //Hides the cursor
     static void hideCursor() {
         std::cout << "\033[?25l";
     }
 
+    // Shows cursor
     static void showCursor() {
         std::cout << "\033[?25h";
     }
+
 
     // Sets the current text color and boldness
     Terminal& setTextColor(const Color& textColor, const bool& isBold = false) {
