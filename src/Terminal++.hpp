@@ -43,6 +43,19 @@ enum class Color {
     Reset = 0, // Resets to the normal color
 };
 
+// Enum for text styles
+enum class Style {
+    Normal,
+    Bold,
+    Dim,
+    Italic,
+    Underline,
+    Blink,
+    Reverse,
+    Hidden,
+    Strike,
+};
+
 // Enum for keyboard buttons' keyCodes
 enum keyCode {
 #ifdef _WIN32
@@ -71,6 +84,7 @@ class Terminal {
     Color textColor;       // Holds the current text color
     bool isBoldColor;      // Indicates if the current text is bold
     Color backgroundColor; // Holds the current background color
+    Style style;
 
     struct TerminalSize {
         int width;
@@ -95,6 +109,10 @@ class Terminal {
         if (color == Color::Reset)
             return textColorToString(color);
         return "\033[" + std::to_string(static_cast<int>(color) + 10) + "m";
+    }
+
+    static std::string styleToString(const Style& style) {
+        return "\033[" + std::to_string(static_cast<int>(style)) + "m";
     }
 
 public:
@@ -215,6 +233,9 @@ public:
     Terminal& print(const T& arg) {
         std::cout << backgroundColorToString(backgroundColor);
 
+        if (style != Style::Normal)
+            std::cout << styleToString(style);
+
         if (textColor != Color::Reset) // if color is not reset then set it as it will affect the background color
             std::cout << textColorToString(textColor, isBoldColor);
 
@@ -266,6 +287,11 @@ public:
 
     Terminal& setBackgroundColor(const Color& backgroundColor) {
         this->backgroundColor = backgroundColor;
+        return *this;
+    }
+
+    Terminal& setStyle(const Style& style) {
+        this->style = style;
         return *this;
     }
 
