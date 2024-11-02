@@ -165,6 +165,17 @@ public:
         return resized;
     }
 
+    // assigns the new widht and height to the given paramters by refrence
+    [[nodiscard]] bool isResized(int& nWidth, int& nHeight) {
+        const auto ndimensions = size();
+        nWidth = ndimensions.width, nHeight = ndimensions.height;
+
+        const bool resized = ndimensions != dimensions;
+        dimensions = ndimensions;
+
+        return resized;
+    }
+
     // returns true if the terminal was resized
     // should be called using nonBlock as it blocks the thread
     // should be called from within a loop
