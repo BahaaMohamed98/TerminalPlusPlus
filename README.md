@@ -1,129 +1,146 @@
-
 # Terminal++
 
-**Terminal++** is a simple terminal utility that provides various functionalities for text output and cursor manipulation in terminal applications. It is cross-platform, working on both Windows and UNIX-like systems, and leverages ANSI escape codes for coloring and formatting.
+A lightweight, cross-platform C++ library for creating rich terminal applications with color support, cursor manipulation, and asynchronous operations. Works seamlessly on Windows and UNIX-like systems.
 
-## Features
+## Table of Contents
+- [Installation](#installation)
+- [Basic Usage](#basic-usage)
+- [Text Styling](#text-styling)
+- [Colors](#colors)
+- [Terminal Operations](#terminal-operations)
+- [Input Handling](#input-handling)
+- [Asynchronous Operations](#asynchronous-operations)
+- [Reference Charts](#reference-charts)
 
-- Clear the terminal screen.
-- Move the cursor to specific positions.
-- Print text in different colors.
-- Print bold text.
-- Get the terminal size.
-- Hide and show the cursor.
-- Read a single character without waiting for the Enter key.
-- Sleep for a specified number of milliseconds.
-- Run tasks asynchronously without blocking the main thread.
-- Support for handling keyboard inputs.
+## Installation
 
-## Examples
-
-#### Clear the Screen
-
-To clear the terminal screen, use the following:
-
+Include the header file in your project:
 ```cpp
-Terminal::clearScreen();
+#include "Terminal.hpp"
 ```
 
-#### Move the Cursor
-
-To move the cursor to a specific position (x, y):
-
-```cpp
-Terminal::moveTo(1, 1); // Move to the top-left corner
+Compile with:
+```bash
+g++ -std=c++17 your_file.cpp -o your_program
 ```
 
-#### Print Text with Colors
+## Basic Usage
 
-You can print text using different colors. Here's how to print "Hello, Terminal++!" in green:
-
+Basic printing operations:
 ```cpp
-Terminal terminal;
-terminal.setColor(Terminal::Color::Green);
-terminal.println("Hello, Terminal++!");
+term.println("Hello, Terminal++!");
 ```
 
-#### Print Bold Text
-
-To print bold text, you can do the following:
-
+Chain multiple operations:
 ```cpp
-terminal.setColor(Terminal::Color::Cyan, true);
-terminal.println("This is bold cyan text!");
+term.setTextColor(Color::Blue)
+    .setBackgroundColor(Color::White)
+    .println("Styled text!");
 ```
 
-#### Get Terminal Size
+## Text Styling
 
-You can retrieve the current size of the terminal with:
+Available text styles through the `Style` enum:
 
+- `Style::Normal` - Default text style
+- `Style::Bold` - Bold weight text
+- `Style::Dim` - Dimmed text intensity
+- `Style::Italic` - Italic text
+- `Style::Underline` - Underlined text
+- `Style::Blink` - Blinking text (see animation in style reference)
+- `Style::Reverse` - Reversed foreground/background colors
+- `Style::Hidden` - Hidden text
+- `Style::Strike` - Strikethrough text
+
+## Colors
+
+### Basic Colors
+Available through the `Color` enum:
+
+- `Color::Black`
+- `Color::Red`
+- `Color::Green`
+- `Color::Yellow`
+- `Color::Blue`
+- `Color::Magenta`
+- `Color::Cyan`
+- `Color::White`
+- `Color::Reset` - Resets both text and background colors to terminal defaults
+
+### 8-bit Colors
+Use any color from 0-255:
 ```cpp
-auto [width, height] = terminal.size();
-terminal.println("Terminal Size: ", width, "x", height);
+term.setTextColor(42);        // Text color
+term.setBackgroundColor(200); // Background color
 ```
 
-#### Hide and Show the Cursor
+[8-bit Color Reference Chart](#8-bit-Color-Chart)
 
-To hide the cursor:
+## Terminal Operations
 
+### Screen Control
+Clear operations available through `ClearType` enum:
+
+- `ClearType::All` - Clear screen and history
+- `ClearType::Purge` - Clear visible screen only
+- `ClearType::Line` - Clear current line
+
+Example:
+```cpp
+Terminal::clearScreen(ClearType::All);
+```
+
+### Cursor Control
+
+#### Move Cursor
+```cpp
+Terminal::moveTo(10, 5);
+```
+Coordinates start at (1, 1) in the top-left corner of the terminal.
+
+#### Hide Cursor
 ```cpp
 Terminal::hideCursor();
 ```
 
-And to show it again:
-
+#### Show Cursor
 ```cpp
 Terminal::showCursor();
 ```
 
-#### Read a Single Character
+### Terminal Information
 
-To read a single character without needing to press Enter:
-
+#### Get Size
 ```cpp
-char input = Terminal::getChar();
-terminal.println("You pressed: ", input);
+auto [width, height] = Terminal::size();
 ```
 
-#### Sleep for a Specified Duration
-
-To pause execution for a certain number of milliseconds:
-
+#### Check Resize
 ```cpp
-Terminal::sleep(3000); // Sleep for 3 seconds
-terminal.println("Awoke after 3 seconds!");
+if (term.isResized()) {
+    // Handle resize
+}
 ```
 
-#### Run Tasks Asynchronously
-
-You can run tasks in the background without blocking the main thread:
-
+#### Get New Dimensions
 ```cpp
-terminal.nonBlock([]() {
-    Terminal threadTerminal; // Create a new Terminal instance for this thread
-    threadTerminal.setColor(Terminal::Color::Red);
-    threadTerminal.println("Asynchronous task completed after 2 seconds.");
-    Terminal::sleep(2000);
-    threadTerminal.println("This message comes from the asynchronous thread.");
-});
+int newWidth, newHeight;
+term.isResized(newWidth, newHeight);
 ```
 
-## Supported Colors
+### Window Title
+```cpp
+Terminal::setTitle("My Terminal App");
+```
 
-The following colors are available:
+### Sleep Operation
+```cpp
+Terminal::sleep(1000); // Sleep for 1 second
+```
 
-- **Reset**: `Color::Reset` (to reset to default color)
-- **Red**: `Color::Red`
-- **Green**: `Color::Green`
-- **Yellow**: `Color::Yellow`
-- **Blue**: `Color::Blue`
-- **Magenta**: `Color::Magenta`
-- **Cyan**: `Color::Cyan`
-- **White**: `Color::White`
+## Input Handling
 
-## Supported keyboard Buttons
-
-The following keyboard buttons are supported for handling inputs:
+### Supported keyboard Buttons
 
 - **Backspace**: `keyCode::Backspace`
 - **Enter**: `keyCode::Enter`
@@ -131,14 +148,67 @@ The following keyboard buttons are supported for handling inputs:
 - **Tab**: `keyCode::Tab`
 - **Space**: `keyCode::Space`
 
-## Compiling
+### Input Methods
 
-To compile your code with the `Terminal++` utility, use the following command:
+#### Read Single Character
+```cpp
+char c = Terminal::getChar();
+```
+Gets a character from unbuffered input - no need to press Enter key.
 
-```bash
-g++ -o example example.cpp
+#### Read String
+```cpp
+std::string str = Terminal::getString("Enter text: ");
 ```
 
-### Conclusion
+#### Read Line
+```cpp
+std::string line = Terminal::getLine("Enter a line: ");
+```
 
-Terminal++ is a straightforward and efficient way to enhance your terminal applications with various functionalities and color support. Enjoy building your terminal-based applications!
+#### Check Key Press
+```cpp
+if (Terminal::keyPressed()) {
+    // Handle key press
+}
+```
+
+## Asynchronous Operations
+
+Run background task:
+```cpp
+term.nonBlock([]() {
+    term.println("Processing...")
+        .setTextColor(Color::Green)
+        .println("Task complete!");
+    Terminal::sleep(1000);
+});
+```
+
+Wait for completion (optional):
+```cpp
+term.awaitCompletion();
+```
+All background threads are automatically waited for when the Terminal instance is destroyed.
+
+## Reference Charts
+
+### Text Styles Animation
+<div align="center">
+  <img src="assets/stylesPreview.gif" alt="Styles preview" width="500"/>
+</div>
+
+### 8-bit Color Chart
+<div align="center">
+  <img src="assets/8-bit Color Reference Chart.png" alt="8-bit Color Chart"/>
+</div>
+
+## Platform Support
+
+- Windows
+- Linux
+- macOS
+
+## Examples
+
+For complete working examples, see [example.cpp](src/examples/example.cpp)
