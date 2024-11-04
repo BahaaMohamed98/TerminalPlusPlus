@@ -68,6 +68,19 @@ enum keyCode {
     Esc   = 27,
     Tab   = 9,
     Space = 32,
+
+    // arrow keys
+#ifdef _WIN32
+    ArrowUp    = 72,
+    ArrowDown  = 80,
+    ArrowRight = 77,
+    ArrowLeft  = 75,
+#else
+    ArrowUp = 65,
+    ArrowDown,
+    ArrowRight,
+    ArrowLeft,
+#endif
 };
 
 // Options for clearScreen()
@@ -110,6 +123,25 @@ class Terminal {
     }
 
 public:
+    // Reads a single character from the terminal's unbuffered input without any processing.
+    // On Windows, uses getch() from <conio.h>.
+    // On Unix-like systems, it disables canonical mode and echo temporarily to capture the input.
+    // This function is low-level; only use it if you plan to handle input processing manually.
+    static char getRawChar() {
+#ifdef _WIN32
+        return getch();
+#else
+        termios oldattr{}, newattr{};
+        tcgetattr(STDIN_FILENO, &oldattr); // Get current terminal attributes
+        newattr = oldattr;
+        newattr.c_lflag &= ~(ICANON | ECHO);        // Disable canonical mode and echoing
+        tcsetattr(STDIN_FILENO, TCSANOW, &newattr); // Apply new attributes immediately
+        const int ch = getchar();                   // Read a single character
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldattr); // Restore original attributes
+        return static_cast<char>(ch);
+#endif
+    }
+
     explicit Terminal(const Color& textColor = Color::Reset, const Color& backgroundColor = Color::Reset)
         : textColor(ansiToString(static_cast<int>(textColor))),
           backgroundColor(backgroundColorToString(backgroundColor)),
@@ -320,19 +352,19 @@ public:
         std::cout << "\033]2;" << title << "\007";
     }
 
-    // Reads a single character from the terminal unbuffered input
+    // Reads a single character with arrow key support for Unix-like systems.
+    //  Captures arrow keys by recognizing ESC sequences and interprets them accordingly.
+    //  Uses getRawChar() internally to handle cross-platform compatibility.
     static char getChar() {
 #ifdef _WIN32
-        return getch();
+      return  getRawChar());
 #else
-        termios oldattr{}, newattr{};
-        tcgetattr(STDIN_FILENO, &oldattr); // Get current terminal attributes
-        newattr = oldattr;
-        newattr.c_lflag &= ~(ICANON | ECHO);        // Disable canonical mode and echoing
-        tcsetattr(STDIN_FILENO, TCSANOW, &newattr); // Apply new attributes immediately
-        const int ch = getchar();                   // Read a single character
-        tcsetattr(STDIN_FILENO, TCSANOW, &oldattr); // Restore original attributes
-        return static_cast<char>(ch);
+        char input = getRawChar();
+        if (input == 27)
+            input = getRawChar();
+        if (input == '[')
+            input = getRawChar();
+        return input;
 #endif
     }
 
