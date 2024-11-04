@@ -74,7 +74,7 @@ enum keyCode {
 // "All" for a complete clear including history
 // "Purge" for clearing the visible screen while preserving scrollback
 // "Line" for clearing just the current line
-enum ClearType {
+enum class ClearType {
     All,   // clear all plus history
     Purge, // clear the screen leaving history
     Line,  // clear the current line
@@ -198,17 +198,17 @@ public:
     // Clears the terminal screen
     static void clearScreen(const ClearType& cleartype = ClearType::All) {
         switch (cleartype) {
-            case All:
+            case ClearType::All:
 #ifdef _WIN32 // For Windows
                 system("cls");
 #else // for linux and macOS
                 system("clear");
 #endif
                 break;
-            case Purge:
+            case ClearType::Purge:
                 std::cout << "\033[2J" << std::flush;
                 break;
-            case Line:
+            case ClearType::Line:
                 std::cout << "\33[2K\r" << std::flush;
                 break;
         }
