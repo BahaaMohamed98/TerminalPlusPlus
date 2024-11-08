@@ -317,6 +317,18 @@ public:
         std::cout << "\033[?25h";
     }
 
+    // enables the alternate screen buffer
+    // the main screen buffer is saved and restored when switching back
+    static void enableAlternateScreen() {
+        std::cout << "\033[?1049h" << std::flush;
+    }
+
+    // disables the alternate screen buffer
+    // switches back to the main screen
+    static void disableAlternateScreen() {
+        std::cout << "\033[?1049l" << std::flush;
+    }
+
     // Sets the current text color and boldness
     Terminal& setTextColor(const Color& textColor) {
         this->textColor = ansiToString(static_cast<int>(textColor));
@@ -357,7 +369,7 @@ public:
     //  Uses getRawChar() internally to handle cross-platform compatibility.
     static char getChar() {
 #ifdef _WIN32
-      return  getRawChar());
+      return  getRawChar();
 #else
         char input = getRawChar();
         if (input == 27)
