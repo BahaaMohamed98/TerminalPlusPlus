@@ -3,6 +3,7 @@
 <div align="center">
   <img src="assets/logo.svg" alt="Terminal++ Logo" width="600" style="margin: 20px 0"/>
 </div>
+<br>
 
 A lightweight, cross-platform C++ library for creating rich terminal applications with color support, cursor manipulation, and asynchronous operations. Works seamlessly on Windows and UNIX-like systems.
 
