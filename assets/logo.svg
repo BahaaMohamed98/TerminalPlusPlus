@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300">
+    <!-- Background -->
+    <rect width="800" height="300" fill="#1E1E1E"/>
+
+    <!-- Terminal window frame -->
+    <rect x="50" y="30" width="700" height="240" rx="10" fill="#2D2D2D"/>
+    <rect x="50" y="30" width="700" height="30" rx="10" fill="#383838"/>
+
+    <!-- Window buttons -->
+    <circle cx="85" cy="45" r="6" fill="#FF5F56"/>
+    <circle cx="105" cy="45" r="6" fill="#FFBD2E"/>
+    <circle cx="125" cy="45" r="6" fill="#27C93F"/>
+
+    <!-- Main text -->
+    <text x="375" y="160" fill="#00FF00" font-family="monospace" font-size="48" text-anchor="middle" font-weight="bold">
+        Terminal++
+    </text>
+
+    <!-- Wide text cursor -->
+    <rect x="550" y="115" width="25" height="48" fill="#00FF00">
+        <animate attributeName="opacity"
+                 values="1;0;1" dur="1.5s"
+                 repeatCount="indefinite"/>
+    </rect>
+
+    <!-- Decorative command prompt -->
+    <text x="130" y="155" fill="#666" font-family="monospace" font-size="24">
+        $>
+    </text>
+</svg>
