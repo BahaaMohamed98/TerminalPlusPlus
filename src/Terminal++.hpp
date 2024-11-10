@@ -231,11 +231,7 @@ public:
     static void clearScreen(const ClearType& cleartype = ClearType::All) {
         switch (cleartype) {
             case ClearType::All:
-#ifdef _WIN32 // For Windows
-                system("cls");
-#else // for linux and macOS
-                system("clear");
-#endif
+                std::cout << "\033[2J\033[H" << std::flush;
                 break;
             case ClearType::Purge:
                 std::cout << "\033[2J" << std::flush;
