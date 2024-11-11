@@ -43,6 +43,14 @@ enum class Color {
     Reset = 0, // Resets to the normal color
 };
 
+struct RGB {
+    int r;
+    int g;
+    int b;
+
+    RGB(const int r, const int g, const int b): r(r), g(g), b(b) {}
+};
+
 // Enum for text styles
 enum class Style {
     Normal,
@@ -111,15 +119,22 @@ class Terminal {
     std::vector<std::thread> threads;
 
     // Converts a number into an ANSI escape code
-    static std::string ansiToString(const int& code) {
+    static std::string toAnsi(const int& code) {
         return "\033[" + std::to_string(code) + "m";
     }
 
-    // Converts a Color into a ANSI escape code for background
-    static std::string backgroundColorToString(const Color& color) {
+    // Converts a Color into an ANSI escape code for background
+    static std::string backgroundColorToAnsi(const Color& color) {
         if (color == Color::Reset)
-            return ansiToString(static_cast<int>(Color::Reset));
-        return ansiToString(static_cast<int>(color) + 10);
+            return toAnsi(static_cast<int>(Color::Reset));
+        return toAnsi(static_cast<int>(color) + 10);
+    }
+
+    // converts an RGB color into an ANSI escape code
+    static std::string RgbToAnsi(const RGB& color_, const bool isBackground) {
+        return "\033[" +
+               std::string(isBackground ? "48" : "38") + ";2;" +
+               std::to_string(color_.r) + ";" + std::to_string(color_.g) + ";" + std::to_string(color_.b) + "m";
     }
 
 public:
@@ -143,8 +158,8 @@ public:
     }
 
     explicit Terminal(const Color& textColor = Color::Reset, const Color& backgroundColor = Color::Reset)
-        : textColor(ansiToString(static_cast<int>(textColor))),
-          backgroundColor(backgroundColorToString(backgroundColor)),
+        : textColor(toAnsi(static_cast<int>(textColor))),
+          backgroundColor(backgroundColorToAnsi(backgroundColor)),
           style(Style::Normal), dimensions(size()) {}
 
     // Destructor ensures that all spawned threads are joined before the object is destroyed
@@ -248,10 +263,14 @@ public:
     }
 
     // Runs a given lambda function on a separate thread
-    Terminal& nonBlock(const std::function<void()>& task) {
-        // Adds a new thread to the threads vector for the task to be executed asynchronously
-        // This ensures that the thread can be joined later when the Terminal object is destroyed
-        threads.emplace_back(task);
+    Terminal& nonBlock(const std::function<void()>& task, const bool runInBackground = false) {
+        if (runInBackground) { // Launches the task in a background thread that runs independently of this object
+            std::thread(task).detach(); // detaching the thread
+        } else {
+            // Adds a new thread to the threads vector for the task to be executed asynchronously
+            // This ensures that the thread can be joined later when the Terminal object is destroyed
+            threads.emplace_back(task);
+        }
         return *this;
     }
 
@@ -267,13 +286,13 @@ public:
         std::cout << backgroundColor;
 
         if (style != Style::Normal)
-            std::cout << ansiToString(static_cast<int>(style));
+            std::cout << toAnsi(static_cast<int>(style));
 
         if (textColor != "\033[0m") // if color is not reset then set it as it will affect the background color
             std::cout << textColor;
 
         std::cout << arg
-                << ansiToString(static_cast<int>(Color::Reset)); // reset colors again
+                << toAnsi(static_cast<int>(Color::Reset)); // reset colors again
 
         return *this;
     }
@@ -325,9 +344,9 @@ public:
         std::cout << "\033[?1049l" << std::flush;
     }
 
-    // Sets the current text color and boldness
+    // Sets the current text color
     Terminal& setTextColor(const Color& textColor) {
-        this->textColor = ansiToString(static_cast<int>(textColor));
+        this->textColor = toAnsi(static_cast<int>(textColor));
         return *this;
     }
 
@@ -337,14 +356,33 @@ public:
         return *this;
     }
 
+    // Sets the text color to a given RGB value
+    Terminal& setTextColor(const RGB& color) {
+        this->textColor = RgbToAnsi(color, false);
+        return *this;
+    }
+
     Terminal& setBackgroundColor(const Color& backgroundColor) {
-        this->backgroundColor = backgroundColorToString(backgroundColor);
+        this->backgroundColor = backgroundColorToAnsi(backgroundColor);
         return *this;
     }
 
     // takes a number between 0 and 255 and sets it as background color
     Terminal& setBackgroundColor(const int& backgroundColor) {
         this->backgroundColor = "\033[48;5;" + std::to_string(backgroundColor) + "m";
+        return *this;
+    }
+
+    // Sets the background color to a given RGB value
+    Terminal& setBackgroundColor(const RGB& color) {
+        this->backgroundColor = RgbToAnsi(color, true);
+        return *this;
+    }
+
+    // resets text and backgound colors
+    Terminal& resetColors() {
+        textColor.clear();
+        backgroundColor.clear();
         return *this;
     }
 
@@ -365,12 +403,12 @@ public:
     //  Uses getRawChar() internally to handle cross-platform compatibility.
     static char getChar() {
 #ifdef _WIN32
-      return  getRawChar();
+        return  getRawChar();
 #else
         char input = getRawChar();
-        if (input == 27)
+        if (input == 27 and keyPressed())
             input = getRawChar();
-        if (input == '[')
+        if (input == '[' and keyPressed())
             input = getRawChar();
         return input;
 #endif
