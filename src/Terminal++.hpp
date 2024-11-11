@@ -43,12 +43,12 @@ enum class Color {
     Reset = 0, // Resets to the normal color
 };
 
-struct RGB {
+struct Rgb {
     int r;
     int g;
     int b;
 
-    RGB(const int r, const int g, const int b): r(r), g(g), b(b) {}
+	Rgb(const int r, const int g, const int b): r(r), g(g), b(b) {}
 };
 
 // Enum for text styles
@@ -93,7 +93,7 @@ enum keyCode {
 
 // Options for clearScreen()
 // "All" for a complete clear including history
-// "Purge" for clearing the visible screen while preserving scrollback
+// "Purge" for clearing the visible screen while preserving history
 // "Line" for clearing just the current line
 enum class ClearType {
     All,   // clear all plus history
@@ -104,7 +104,7 @@ enum class ClearType {
 class Terminal {
     std::string textColor;       // Holds the current text color
     std::string backgroundColor; // Holds the current background color
-    Style style;
+    Style textStyle;
 
     struct TerminalSize {
         int width;
@@ -123,7 +123,7 @@ class Terminal {
         return "\033[" + std::to_string(code) + "m";
     }
 
-    // Converts a Color into an ANSI escape code for background
+    // Converts a Color into an ANSI escape code for the background color
     static std::string backgroundColorToAnsi(const Color& color) {
         if (color == Color::Reset)
             return toAnsi(static_cast<int>(Color::Reset));
@@ -131,7 +131,7 @@ class Terminal {
     }
 
     // converts an RGB color into an ANSI escape code
-    static std::string RgbToAnsi(const RGB& color_, const bool isBackground) {
+    static std::string RgbToAnsi(const Rgb& color_, const bool isBackground) {
         return "\033[" +
                std::string(isBackground ? "48" : "38") + ";2;" +
                std::to_string(color_.r) + ";" + std::to_string(color_.g) + ";" + std::to_string(color_.b) + "m";
@@ -140,11 +140,11 @@ class Terminal {
 public:
     // Reads a single character from the terminal's unbuffered input without any processing.
     // On Windows, uses getch() from <conio.h>.
-    // On Unix-like systems, it disables canonical mode and echo temporarily to capture the input.
+    // On Unix-like systems, it disables canonical mode and echoing temporarily to capture the input.
     // This function is low-level; only use it if you plan to handle input processing manually.
     static char getRawChar() {
 #ifdef _WIN32
-        return getch();
+        return (char)getch();
 #else
         termios oldattr{}, newattr{};
         tcgetattr(STDIN_FILENO, &oldattr); // Get current terminal attributes
@@ -160,7 +160,7 @@ public:
     explicit Terminal(const Color& textColor = Color::Reset, const Color& backgroundColor = Color::Reset)
         : textColor(toAnsi(static_cast<int>(textColor))),
           backgroundColor(backgroundColorToAnsi(backgroundColor)),
-          style(Style::Normal), dimensions(size()) {}
+          textStyle(Style::Normal), dimensions(size()) {}
 
     // Destructor ensures that all spawned threads are joined before the object is destroyed
     // to prevent potential crashes from detached threads running after the object is deleted
@@ -185,10 +185,10 @@ public:
         TerminalSize size{0, 0};
 
 #ifdef _WIN32
-        CONSOLE_SCREEN_BUFFER_INFO csbi;
-        if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
-            size.width = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-            size.height = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+        CONSOLE_SCREEN_BUFFER_INFO screenBufferInfo;
+        if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &screenBufferInfo)) {
+            size.width = screenBufferInfo.srWindow.Right - screenBufferInfo.srWindow.Left + 1;
+            size.height = screenBufferInfo.srWindow.Bottom - screenBufferInfo.srWindow.Top + 1;
         }
 #else
         winsize w{};
@@ -204,21 +204,21 @@ public:
     // returns true if the terminal was resized
     // should be called from within a loop
     [[nodiscard]] bool isResized() {
-        const auto ndimensions = size();
+        const auto newDimensions = size();
 
-        const bool resized = ndimensions != dimensions;
-        dimensions = ndimensions;
+        const bool resized = newDimensions != dimensions;
+        dimensions = newDimensions;
 
         return resized;
     }
 
-    // assigns the new widht and height to the given paramters by refrence
+    // assigns the new width and height to the given parameters by reference
     [[nodiscard]] bool isResized(int& nWidth, int& nHeight) {
-        const auto ndimensions = size();
-        nWidth = ndimensions.width, nHeight = ndimensions.height;
+        const auto newDimensions = size();
+        nWidth = newDimensions.width, nHeight = newDimensions.height;
 
-        const bool resized = ndimensions != dimensions;
-        dimensions = ndimensions;
+        const bool resized = newDimensions != dimensions;
+        dimensions = newDimensions;
 
         return resized;
     }
@@ -267,7 +267,7 @@ public:
         if (runInBackground) { // Launches the task in a background thread that runs independently of this object
             std::thread(task).detach(); // detaching the thread
         } else {
-            // Adds a new thread to the threads vector for the task to be executed asynchronously
+            // Adds a new thread to the vector of threads for the task to be executed asynchronously
             // This ensures that the thread can be joined later when the Terminal object is destroyed
             threads.emplace_back(task);
         }
@@ -275,7 +275,7 @@ public:
     }
 
     // Moves the cursor to the specified (x, y) position in the terminal
-    // starting from (1, 1) at the top left corner of the terminal
+    // starting from (1, 1) in the top left corner of the terminal
     static void moveTo(const int& x, const int& y) {
         std::cout << "\033[" << y << ";" << x << "H";
     }
@@ -285,10 +285,10 @@ public:
     Terminal& print(const T& arg) {
         std::cout << backgroundColor;
 
-        if (style != Style::Normal)
-            std::cout << toAnsi(static_cast<int>(style));
+        if (textStyle != Style::Normal)
+            std::cout << toAnsi(static_cast<int>(textStyle));
 
-        if (textColor != "\033[0m") // if color is not reset then set it as it will affect the background color
+        if (textColor != "\033[0m") // if color is not reset, then set it as it will affect the background color
             std::cout << textColor;
 
         std::cout << arg
@@ -327,7 +327,7 @@ public:
         std::cout << "\033[?25l";
     }
 
-    // Shows cursor
+    // Shows the cursor
     static void showCursor() {
         std::cout << "\033[?25h";
     }
@@ -345,41 +345,41 @@ public:
     }
 
     // Sets the current text color
-    Terminal& setTextColor(const Color& textColor) {
-        this->textColor = toAnsi(static_cast<int>(textColor));
+    Terminal& setTextColor(const Color& color) {
+        this->textColor = toAnsi(static_cast<int>(color));
         return *this;
     }
 
     // takes a number between 0 and 255 and sets it as text color
-    Terminal& setTextColor(const int& textColor) {
-        this->textColor = "\033[38;5;" + std::to_string(textColor) + "m";
+    Terminal& setTextColor(const int& color) {
+        this->textColor = "\033[38;5;" + std::to_string(color) + "m";
         return *this;
     }
 
-    // Sets the text color to a given RGB value
-    Terminal& setTextColor(const RGB& color) {
+    // Sets the text color to a given Rgb value
+    Terminal& setTextColor(const Rgb& color) {
         this->textColor = RgbToAnsi(color, false);
         return *this;
     }
 
-    Terminal& setBackgroundColor(const Color& backgroundColor) {
-        this->backgroundColor = backgroundColorToAnsi(backgroundColor);
+    Terminal& setBackgroundColor(const Color& color) {
+        this->backgroundColor = backgroundColorToAnsi(color);
         return *this;
     }
 
     // takes a number between 0 and 255 and sets it as background color
-    Terminal& setBackgroundColor(const int& backgroundColor) {
-        this->backgroundColor = "\033[48;5;" + std::to_string(backgroundColor) + "m";
+    Terminal& setBackgroundColor(const int& color) {
+        this->backgroundColor = "\033[48;5;" + std::to_string(color) + "m";
         return *this;
     }
 
-    // Sets the background color to a given RGB value
-    Terminal& setBackgroundColor(const RGB& color) {
+    // Sets the background color to a given Rgb value
+    Terminal& setBackgroundColor(const Rgb& color) {
         this->backgroundColor = RgbToAnsi(color, true);
         return *this;
     }
 
-    // resets text and backgound colors
+    // resets text and background colors
     Terminal& resetColors() {
         textColor.clear();
         backgroundColor.clear();
@@ -388,7 +388,7 @@ public:
 
     // sets the text style
     Terminal& setStyle(const Style& style) {
-        this->style = style;
+        this->textStyle = style;
         return *this;
     }
 
