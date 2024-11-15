@@ -117,9 +117,9 @@ Example:
 Terminal::clearScreen(ClearType::All);
 ```
 
-### Cursor control
+## Cursor control
 
-#### Move cursor
+### Move cursor
 
 ```c++
 Cursor::moveTo(10, 5);
@@ -127,19 +127,19 @@ Cursor::moveTo(10, 5);
 
 Coordinates start at [1, 1] in the top-left corner of the terminal.
 
-#### Hide cursor
+### Hide cursor
 
 ```c++
 Cursor::hideCursor();
 ```
 
-#### Show cursor
+### Show cursor
 
 ```c++
 Cursor::showCursor();
 ```
 
-### Cursor styles
+## Cursor styles
 
 - `Cursor::Default` - the default cursor shape used by the user
 - `Cursor::BlinkingBlock` - a blinking block `█`
@@ -148,6 +148,8 @@ Cursor::showCursor();
 - `Cursor::SteadyUnderline` - a non blinking underline
 - `Cursor::BlinkingBar` - a blinking bar `|`
 - `Cursor::SteadyBar` - a non blinking bar
+
+Change cursor style
 
 #### Example:
 
