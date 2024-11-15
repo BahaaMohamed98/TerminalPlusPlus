@@ -31,6 +31,8 @@
 #endif
 
 class Color {
+    std::string ansiCode; // the stored color ANSI code
+
 public:
     // Enum for terminal text colors
     enum Code {
@@ -45,10 +47,11 @@ public:
         Reset = 0, // Resets to the normal color
     };
 
+    // a class representing an RGB color
     class Rgb {
-        int r;
-        int g;
-        int b;
+        uint8_t r;
+        uint8_t g;
+        uint8_t b;
 
     private:
         // converts an RGB color into an ANSI escape code
@@ -59,10 +62,37 @@ public:
         }
 
     public:
-        Rgb(const int r, const int g, const int b): r(r), g(g), b(b) {}
+        Rgb(const uint8_t r, const uint8_t g, const uint8_t b): r(r), g(g), b(b) {}
 
-        friend class Printer;
+        friend class Color;
     };
+
+    // overloading the insertion operator
+    friend std::ostream& operator <<(std::ostream& out, const Color& color) {
+        return out << color.ansiCode;
+    }
+
+    friend class Printer;
+
+private:
+    // `Color::Code` to `Color`
+    explicit Color(const Code& colorCode, const bool isBackground)
+        : ansiCode(
+            "\033[" + (colorCode == Reset ? "0" : std::to_string(isBackground ? colorCode + 10 : colorCode)) + "m"
+        ) {}
+
+    // `Rgb` to `Color`
+    explicit Color(const uint8_t& ansiColor, const bool isBackground)
+        : ansiCode("\033[" + std::string{isBackground ? "48" : "38"} + ";5;" + std::to_string(ansiColor) + "m") {}
+
+    // ANSI color to `Color`
+    explicit Color(const Rgb& rgbColor, const bool isBackground)
+        : ansiCode(rgbColor.toAnsi(isBackground)) {}
+
+    // clears the color
+    void clear() {
+        ansiCode.clear();
+    }
 };
 
 class Cursor {
@@ -138,40 +168,48 @@ public:
     }
 };
 
-// Enum for text styles
-enum class TextStyle {
-    Normal,
-    Bold,
-    Dim,
-    Italic,
-    Underline,
-    Blink,
-    Reverse,
-    Hidden,
-    Strike,
+class TextStyle {
+    std::string ansiCode;
+    bool isNormal;
+
+public:
+    // Enum for text styles
+    enum style {
+        Normal,
+        Bold,
+        Dim,
+        Italic,
+        Underline,
+        Blink,
+        Reverse,
+        Hidden,
+        Strike,
+    };
+
+    explicit TextStyle(const style& style)
+        : ansiCode("\033[" + std::to_string(style) + "m"), isNormal(style == Normal) {}
+
+    [[nodiscard]] bool isNormalStyle() const {
+        return isNormal;
+    }
+
+    // insertion operator overload
+    friend std::ostream& operator <<(std::ostream& out, const TextStyle& textStyle) {
+        return out << textStyle.ansiCode;
+    }
 };
 
 class Printer {
-    std::string textColor;       // Holds the current text color
-    std::string backgroundColor; // Holds the current background color
-    TextStyle textStyle;         // the current textStyle
-
-    // Converts a number into an ANSI escape code
-    static std::string toAnsi(const int& code) {
-        return "\033[" + std::to_string(code) + "m";
-    }
-
-    // Converts a Color into an ANSI escape code for the background color
-    static std::string backgroundColorToAnsi(const Color::Code& color) {
-        if (color == Color::Reset)
-            return toAnsi(Color::Reset);
-        return toAnsi(static_cast<int>(color) + 10);
-    }
+    Color textColor;       // current text color
+    Color backgroundColor; // current background color
+    Color reset;           // color reset
+    TextStyle textStyle;   // current textStyle
 
 public:
     explicit Printer(const Color::Code& textColor = Color::Reset, const Color::Code& backgroundColor = Color::Reset)
-        : textColor(toAnsi(textColor)),
-          backgroundColor(backgroundColorToAnsi(backgroundColor)),
+        : textColor(Color(textColor, false)),
+          backgroundColor(Color(backgroundColor, true)),
+          reset(Color(Color::Reset, false)),
           textStyle(TextStyle::Normal) {}
 
     // Prints multiple arguments to the terminal
@@ -179,13 +217,14 @@ public:
     Printer& print(const T& arg) {
         std::cout << backgroundColor;
 
-        if (textStyle != TextStyle::Normal)
-            std::cout << toAnsi(static_cast<int>(textStyle));
+        if (!textStyle.isNormalStyle())
+            std::cout << textStyle;
 
-        if (textColor != "\033[0m") // if color is not reset, then set it as it will affect the background color
+        // if color is not reset, then set it as it will affect the background color
+        if (textColor.ansiCode != reset.ansiCode)
             std::cout << textColor;
 
-        std::cout << arg << toAnsi(Color::Reset); // reset colors again
+        std::cout << arg << reset; // reset colors again
 
         return *this;
     }
@@ -217,38 +256,38 @@ public:
     }
 
     // Sets the current text color
-    Printer& setTextColor(const Color::Code& color) {
-        this->textColor = toAnsi(color);
+    Printer& setTextColor(const Color::Code& colorCode) {
+        this->textColor = Color(colorCode, false);
         return *this;
     }
 
     // takes a number between 0 and 255 and sets it as text color
-    Printer& setTextColor(const int& color) {
-        this->textColor = "\033[38;5;" + std::to_string(color) + "m";
+    Printer& setTextColor(const uint8_t& ansiColor) {
+        this->textColor.ansiCode = "\033[38;5;" + std::to_string(ansiColor) + "m";
         return *this;
     }
 
     // Sets the text color to a given Rgb value
-    Printer& setTextColor(const Color::Rgb& color) {
-        this->textColor = color.toAnsi(false);
+    Printer& setTextColor(const Color::Rgb& rgbColor) {
+        this->textColor = Color(rgbColor, false);
         return *this;
     }
 
     // Sets the text background color to a given ColorCode
-    Printer& setBackgroundColor(const Color::Code& color) {
-        this->backgroundColor = backgroundColorToAnsi(color);
+    Printer& setBackgroundColor(const Color::Code& colorCode) {
+        this->backgroundColor = Color(colorCode, true);
         return *this;
     }
 
     // takes a number between 0 and 255 and sets it as background color
-    Printer& setBackgroundColor(const int& color) {
-        this->backgroundColor = "\033[48;5;" + std::to_string(color) + "m";
+    Printer& setBackgroundColor(const uint8_t& ansiColor) {
+        this->backgroundColor = Color(ansiColor, true);
         return *this;
     }
 
     // Sets the background color to a given Rgb value
-    Printer& setBackgroundColor(const Color::Rgb& color) {
-        this->backgroundColor = color.toAnsi(true);
+    Printer& setBackgroundColor(const Color::Rgb& rgbColor) {
+        this->backgroundColor = Color(rgbColor, true);
         return *this;
     }
 
@@ -260,8 +299,8 @@ public:
     }
 
     // sets the text style
-    Printer& setTextStyle(const TextStyle& style) {
-        this->textStyle = style;
+    Printer& setTextStyle(const TextStyle::style& textStyle) {
+        this->textStyle = TextStyle(textStyle);
         return *this;
     }
 };
