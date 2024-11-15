@@ -30,7 +30,8 @@
 
 #endif
 
-struct Color {
+class Color {
+public:
     // Enum for terminal text colors
     enum Code {
         Black = 30,
@@ -77,33 +78,6 @@ enum class TextStyle {
     Strike,
 };
 
-// Enum for keyboard buttons' keyCodes
-enum keyCode {
-#ifdef _WIN32
-    Backspace = 8,
-    Enter     = 13,
-#else
-    Backspace = 127,
-    Enter     = 10,
-#endif
-    Esc   = 27,
-    Tab   = 9,
-    Space = 32,
-
-    // arrow keys
-#ifdef _WIN32
-    ArrowUp    = 72,
-    ArrowDown  = 80,
-    ArrowRight = 77,
-    ArrowLeft  = 75,
-#else
-    ArrowUp = 65,
-    ArrowDown,
-    ArrowRight,
-    ArrowLeft,
-#endif
-};
-
 class Cursor {
 public:
     enum cursorStyle {
@@ -138,31 +112,30 @@ public:
     }
 };
 
-class Screen {
-    // Options for clearScreen()
-    // "All" for a complete clear including history
-    // "Purge" for clearing the visible screen while preserving history
-    // "Line" for clearing just the current line
-    enum class ClearType {
-        All,   // clear all plus history
-        Purge, // clear the screen leaving history
-        Line,  // clear the current line
-    };
+// Options for Screen::clear()
+enum class ClearType {
+    All,   //  complete clear including history
+    Purge, //  clearing the visible screen while preserving history
+    Line,  //  clearing just the current line
+};
 
+class Screen {
 public:
     // Clears the terminal screen
     static void clear(const ClearType& cleartype = ClearType::All) {
         switch (cleartype) {
             case ClearType::All:
-                std::cout << "\033[2J\033[H" << std::flush;
+                std::cout << "\033[2J\033[H";
                 break;
             case ClearType::Purge:
-                std::cout << "\033[2J" << std::flush;
+                std::cout << "\033[2J";
                 break;
             case ClearType::Line:
-                std::cout << "\33[2K\r" << std::flush;
+                std::cout << "\33[2K\r";
                 break;
         }
+
+        std::cout.flush();
     }
 
     // enables the alternate screen buffer
@@ -412,6 +385,33 @@ public:
     static void reset() {
         std::cout << "\033c" << std::flush;
     }
+};
+
+// Enum for keyboard buttons' keyCodes
+enum keyCode {
+#ifdef _WIN32
+    Backspace = 8,
+    Enter     = 13,
+#else
+    Backspace = 127,
+    Enter     = 10,
+#endif
+    Esc   = 27,
+    Tab   = 9,
+    Space = 32,
+
+    // arrow keys
+#ifdef _WIN32
+    ArrowUp    = 72,
+    ArrowDown  = 80,
+    ArrowRight = 77,
+    ArrowLeft  = 75,
+#else
+    ArrowUp = 65,
+    ArrowDown,
+    ArrowRight,
+    ArrowLeft,
+#endif
 };
 
 class Input {
