@@ -61,21 +61,8 @@ public:
     public:
         Rgb(const int r, const int g, const int b): r(r), g(g), b(b) {}
 
-        friend class Terminal;
+        friend class Printer;
     };
-};
-
-// Enum for text styles
-enum class TextStyle {
-    Normal,
-    Bold,
-    Dim,
-    Italic,
-    Underline,
-    Blink,
-    Reverse,
-    Hidden,
-    Strike,
 };
 
 class Cursor {
@@ -151,22 +138,23 @@ public:
     }
 };
 
-class Terminal {
+// Enum for text styles
+enum class TextStyle {
+    Normal,
+    Bold,
+    Dim,
+    Italic,
+    Underline,
+    Blink,
+    Reverse,
+    Hidden,
+    Strike,
+};
+
+class Printer {
     std::string textColor;       // Holds the current text color
     std::string backgroundColor; // Holds the current background color
-    TextStyle textStyle;
-
-    struct TerminalSize {
-        int width;
-        int height;
-
-        bool operator!=(const TerminalSize& other) const {
-            return width != other.width or height != other.height;
-        }
-    };
-
-    TerminalSize dimensions;          // current terminal dimensions
-    std::vector<std::thread> threads; // storing all the nonBlocking functions to join them later
+    TextStyle textStyle;         // the current textStyle
 
     // Converts a number into an ANSI escape code
     static std::string toAnsi(const int& code) {
@@ -181,15 +169,147 @@ class Terminal {
     }
 
 public:
-    explicit Terminal(const Color::Code& textColor = Color::Reset, const Color::Code& backgroundColor = Color::Reset)
+    explicit Printer(const Color::Code& textColor = Color::Reset, const Color::Code& backgroundColor = Color::Reset)
         : textColor(toAnsi(textColor)),
           backgroundColor(backgroundColorToAnsi(backgroundColor)),
-          textStyle(TextStyle::Normal), dimensions(size()) {}
+          textStyle(TextStyle::Normal) {}
+
+    // Prints multiple arguments to the terminal
+    template<class T>
+    Printer& print(const T& arg) {
+        std::cout << backgroundColor;
+
+        if (textStyle != TextStyle::Normal)
+            std::cout << toAnsi(static_cast<int>(textStyle));
+
+        if (textColor != "\033[0m") // if color is not reset, then set it as it will affect the background color
+            std::cout << textColor;
+
+        std::cout << arg << toAnsi(Color::Reset); // reset colors again
+
+        return *this;
+    }
+
+    // Prints multiple arguments to the terminal
+    template<typename T, typename... Args>
+    Printer& print(const T& arg, const Args&... args) {
+        print(arg);
+        print(args...);
+        return *this;
+    }
+
+    Printer& println() {
+        print("\n");
+        return *this;
+    }
+
+    // Prints multiple arguments followed by a newline
+    template<typename... Args>
+    Printer& println(const Args&... args) {
+        print(args...);
+        print("\n");
+        return *this;
+    }
+
+    // Flushes the output stream
+    static void flush() {
+        std::cout.flush();
+    }
+
+    // Sets the current text color
+    Printer& setTextColor(const Color::Code& color) {
+        this->textColor = toAnsi(color);
+        return *this;
+    }
+
+    // takes a number between 0 and 255 and sets it as text color
+    Printer& setTextColor(const int& color) {
+        this->textColor = "\033[38;5;" + std::to_string(color) + "m";
+        return *this;
+    }
+
+    // Sets the text color to a given Rgb value
+    Printer& setTextColor(const Color::Rgb& color) {
+        this->textColor = color.toAnsi(false);
+        return *this;
+    }
+
+    // Sets the text background color to a given ColorCode
+    Printer& setBackgroundColor(const Color::Code& color) {
+        this->backgroundColor = backgroundColorToAnsi(color);
+        return *this;
+    }
+
+    // takes a number between 0 and 255 and sets it as background color
+    Printer& setBackgroundColor(const int& color) {
+        this->backgroundColor = "\033[48;5;" + std::to_string(color) + "m";
+        return *this;
+    }
+
+    // Sets the background color to a given Rgb value
+    Printer& setBackgroundColor(const Color::Rgb& color) {
+        this->backgroundColor = color.toAnsi(true);
+        return *this;
+    }
+
+    // resets text and background colors
+    Printer& resetColors() {
+        textColor.clear();
+        backgroundColor.clear();
+        return *this;
+    }
+
+    // sets the text style
+    Printer& setTextStyle(const TextStyle& style) {
+        this->textStyle = style;
+        return *this;
+    }
+};
+
+class Terminal {
+    struct TerminalSize {
+        int width;
+        int height;
+
+        bool operator!=(const TerminalSize& other) const {
+            return width != other.width or height != other.height;
+        }
+    };
+
+    TerminalSize dimensions;          // current terminal dimensions
+    std::vector<std::thread> threads; // storing all the nonBlocking functions to join them later
+
+public:
+    Terminal(): dimensions(size()) {}
 
     // Destructor ensures that all spawned threads are joined before the object is destroyed
     // to prevent potential crashes from detached threads running after the object is deleted
     ~Terminal() {
         awaitCompletion();
+    }
+
+    // Runs a given lambda function on a separate thread
+    Terminal& nonBlock(const std::function<void()>& task, const bool runInBackground = false) {
+        if (runInBackground) { // Launches the task in a background thread that runs independently of this object
+            std::thread(task).detach(); // detaching the thread
+        } else {
+            // Adds a new thread to the vector of threads for the task to be executed asynchronously
+            // This ensures that the thread can be joined later when the Terminal object is destroyed
+            threads.emplace_back(task);
+        }
+        return *this;
+    }
+
+    // Waits for all non-blocking tasks to finish before continuing
+    // Call this after starting tasks with nonBlock()
+    Terminal& awaitCompletion() {
+        for (auto& thread : threads) {
+            if (thread.joinable()) {
+                thread.join();
+            }
+        }
+        threads.clear(); // Clear the threads vector after joining
+        return *this;
     }
 
     // returns terminal size struct of (width, height)
@@ -257,122 +377,6 @@ public:
     // Sleeps for specified number of milliseconds
     static void sleep(const int& milliseconds) {
         std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
-    }
-
-    // Runs a given lambda function on a separate thread
-    Terminal& nonBlock(const std::function<void()>& task, const bool runInBackground = false) {
-        if (runInBackground) { // Launches the task in a background thread that runs independently of this object
-            std::thread(task).detach(); // detaching the thread
-        } else {
-            // Adds a new thread to the vector of threads for the task to be executed asynchronously
-            // This ensures that the thread can be joined later when the Terminal object is destroyed
-            threads.emplace_back(task);
-        }
-        return *this;
-    }
-
-    // Waits for all non-blocking tasks to finish before continuing
-    // Call this after starting tasks with nonBlock()
-    Terminal& awaitCompletion() {
-        for (auto& thread : threads) {
-            if (thread.joinable()) {
-                thread.join();
-            }
-        }
-        threads.clear(); // Clear the threads vector after joining
-        return *this;
-    }
-
-    // Prints multiple arguments to the terminal
-    template<class T>
-    Terminal& print(const T& arg) {
-        std::cout << backgroundColor;
-
-        if (textStyle != TextStyle::Normal)
-            std::cout << toAnsi(static_cast<int>(textStyle));
-
-        if (textColor != "\033[0m") // if color is not reset, then set it as it will affect the background color
-            std::cout << textColor;
-
-        std::cout << arg
-                << toAnsi(static_cast<int>(Color::Reset)); // reset colors again
-
-        return *this;
-    }
-
-    // Prints multiple arguments to the terminal
-    template<typename T, typename... Args>
-    Terminal& print(const T& arg, const Args&... args) {
-        print(arg);
-        print(args...);
-        return *this;
-    }
-
-    Terminal& println() {
-        print("\n");
-        return *this;
-    }
-
-    // Prints multiple arguments followed by a newline
-    template<typename... Args>
-    Terminal& println(const Args&... args) {
-        print(args...);
-        print("\n");
-        return *this;
-    }
-
-    // Flushes the output stream
-    static void flush() {
-        std::cout.flush();
-    }
-
-    // Sets the current text color
-    Terminal& setTextColor(const Color::Code& color) {
-        this->textColor = toAnsi(color);
-        return *this;
-    }
-
-    // takes a number between 0 and 255 and sets it as text color
-    Terminal& setTextColor(const int& color) {
-        this->textColor = "\033[38;5;" + std::to_string(color) + "m";
-        return *this;
-    }
-
-    // Sets the text color to a given Rgb value
-    Terminal& setTextColor(const Color::Rgb& color) {
-        this->textColor = color.toAnsi(false);
-        return *this;
-    }
-
-    // Sets the text background color to a given ColorCode
-    Terminal& setBackgroundColor(const Color::Code& color) {
-        this->backgroundColor = backgroundColorToAnsi(color);
-        return *this;
-    }
-
-    // takes a number between 0 and 255 and sets it as background color
-    Terminal& setBackgroundColor(const int& color) {
-        this->backgroundColor = "\033[48;5;" + std::to_string(color) + "m";
-        return *this;
-    }
-
-    // Sets the background color to a given Rgb value
-    Terminal& setBackgroundColor(const Color::Rgb& color) {
-        this->backgroundColor = color.toAnsi(true);
-        return *this;
-    }
-
-    // resets text and background colors
-    Terminal& resetColors() {
-        textColor.clear();
-        backgroundColor.clear();
-        return *this;
-    }
-
-    // sets the text style
-    Terminal& setTextStyle(const TextStyle& style) {
-        this->textStyle = style;
-        return *this;
     }
 
     // sets the terminal title
