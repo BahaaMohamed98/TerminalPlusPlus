@@ -4,9 +4,12 @@
   <img src="assets/logo.svg" alt="Terminal++ Logo" width="600" style="margin: 20px 0"/>
 </div>
 
-A lightweight, cross-platform C++ library for creating rich terminal applications with color support, cursor manipulation, and asynchronous operations. Works seamlessly on Windows and UNIX-like systems.
+A lightweight, cross-platform C++ library for creating rich terminal applications with color support, cursor
+manipulation, and asynchronous operations.
+Works seamlessly on Windows and UNIX-like systems.
 
-## Table of Contents
+## Table of contents
+
 - [Installation](#installation)
 - [Basic Usage](#basic-usage)
 - [Text Styling](#text-styling)
@@ -19,47 +22,56 @@ A lightweight, cross-platform C++ library for creating rich terminal application
 ## Installation
 
 Include the header file in your project:
-```cpp
+
+```c++
 #include "Terminal.hpp"
 ```
 
 Compile with:
+
 ```bash
-g++ -std=c++17 your_file.cpp -o your_program
+g++ -std=c++17 your_file.c++ -o your_program
 ```
 
-## Basic Usage
+No special setup or configuration is required.
+
+## Basic usage
 
 Basic printing operations:
-```cpp
-term.println("Hello, Terminal++!");
+
+```c++
+printer.println("Hello, Terminal++!");
 ```
 
 Chain multiple operations:
-```cpp
-term.setTextColor(Color::Blue)
+
+```c++
+printer.setTextColor(Color::Blue)
     .setBackgroundColor(Color::White)
     .println("Styled text!");
 ```
 
-## Text Styling
+## Text styling
 
-Available text styles through the `Style` enum:
+Available text styles through the `TextStyle` class:
 
-- `Style::Normal` - Default text style
-- `Style::Bold` - Bold weight text
-- `Style::Dim` - Dimmed text intensity
-- `Style::Italic` - Italic text
-- `Style::Underline` - Underlined text
-- `Style::Blink` - Blinking text (see animation in style reference)
-- `Style::Reverse` - Reversed foreground/background colors
-- `Style::Hidden` - Hidden text
-- `Style::Strike` - Strikethrough text
+- `TextStyle::Normal` - Default text style
+- `TextStyle::Bold` - Bold weight text
+- `TextStyle::Dim` - Dimmed text intensity
+- `TextStyle::Italic` - Italic text
+- `TextStyle::Underline` - Underlined text
+- `TextStyle::Blink` - Blinking text
+- `TextStyle::Reverse` - Reversed foreground/background colors
+- `TextStyle::Hidden` - Hidden text
+- `TextStyle::Strike` - Strikethrough text
+
+[Text styles Reference](#text-styles)
 
 ## Colors
 
-### Basic Colors
-Available through the `Color` enum:
+### Basic colors
+
+Available through the `Color` class:
 
 - `Color::Black`
 - `Color::Red`
@@ -71,18 +83,28 @@ Available through the `Color` enum:
 - `Color::White`
 - `Color::Reset` - Resets both text and background colors to terminal defaults
 
-### 8-bit Colors
-Use any color from 0-255:
-```cpp
-term.setTextColor(42);        // Text color
-term.setBackgroundColor(200); // Background color
+### 8-bit colors
+
+Use any color from 0 to 255:
+
+```c++
+printer.setTextColor(42)        // Text color
+     .setBackgroundColor(200); // Background color
 ```
 
-[8-bit Color Reference Chart](#8-bit-Color-Chart)
+[8-bit Color Reference Chart](#8-bit-color-chart)
 
-## Terminal Operations
+### RGB colors
 
-### Screen Control
+```c++
+printer.setTextColor(Color::Rgb(94, 60, 108)) // purple color
+       .println("Termina++ in purple!");
+```
+
+## Terminal operations
+
+### Screen control
+
 Clear operations available through `ClearType` enum:
 
 - `ClearType::All` - Clear screen and history
@@ -90,129 +112,168 @@ Clear operations available through `ClearType` enum:
 - `ClearType::Line` - Clear current line
 
 Example:
-```cpp
+
+```c++
 Terminal::clearScreen(ClearType::All);
 ```
 
-### Cursor Control
+### Cursor control
 
-#### Move Cursor
-```cpp
-Terminal::moveTo(10, 5);
-```
-Coordinates start at (1, 1) in the top-left corner of the terminal.
+#### Move cursor
 
-#### Hide Cursor
-```cpp
-Terminal::hideCursor();
+```c++
+Cursor::moveTo(10, 5);
 ```
 
-#### Show Cursor
-```cpp
-Terminal::showCursor();
+Coordinates start at [1, 1] in the top-left corner of the terminal.
+
+#### Hide cursor
+
+```c++
+Cursor::hideCursor();
 ```
 
-### Terminal Information
+#### Show cursor
 
-#### Get Size
-```cpp
+```c++
+Cursor::showCursor();
+```
+
+### Cursor styles
+
+- `Cursor::Default` - the default cursor shape used by the user
+- `Cursor::BlinkingBlock` - a blinking block `█`
+- `Cursor::SteadyBlock` - a non blinking block
+- `Cursor::BlinkingUnderline` - a blinking underline `_`
+- `Cursor::SteadyUnderline` - a non blinking underline
+- `Cursor::BlinkingBar` - a blinking bar `|`
+- `Cursor::SteadyBar` - a non blinking bar
+
+#### Example:
+
+```c++
+Cursor::setStyle(Cursor::BlinkingUnderline);
+```
+
+### Terminal information
+
+#### Get size
+
+```c++
 auto [width, height] = Terminal::size();
 ```
 
-#### Check Resize
-```cpp
-if (term.isResized()) {
-    // Handle resize
-}
+#### Check resize
+
+```c++
+if (term.isResized()) {/*Handle resize*/}
 ```
 
-#### Get New Dimensions
-```cpp
+#### Get new dimensions
+
+```c++
 int newWidth, newHeight;
 term.isResized(newWidth, newHeight);
 ```
 
-### Window Title
-```cpp
+### Window title
+
+```c++
 Terminal::setTitle("My Terminal App");
 ```
 
-### Sleep Operation
-```cpp
+### Sleep operation
+
+```c++
 Terminal::sleep(1000); // Sleep for 1 second
 ```
 
-## Input Handling
+### Terminal reset
 
-### Supported keyboard Buttons
+```c++
+Terminal::reset();
+```
+
+Resets all the terminal's attributes
+
+## Input handling
+
+### Supported keyboard buttons
 
 - **Backspace**: `keyCode::Backspace`
 - **Enter**: `keyCode::Enter`
 - **Escape**: `keyCode::Esc`
 - **Tab**: `keyCode::Tab`
 - **Space**: `keyCode::Space`
+- **ArrowKeys**
 
-### Input Methods
+### Input methods
 
-#### Read Single Character
-```cpp
-char c = Terminal::getChar();
-```
-Gets a character from unbuffered input - no need to press Enter key.
+#### Read single character
 
-#### Read String
-```cpp
-std::string str = Terminal::getString("Enter text: ");
+```c++
+char c = Input::getChar();
 ```
 
-#### Read Line
-```cpp
-std::string line = Terminal::getLine("Enter a line: ");
+Gets a character from unbuffered input.
+
+#### Read a string
+
+```c++
+std::string str = Input::getString("Enter text: ");
 ```
 
-#### Check Key Press
-```cpp
-if (Terminal::keyPressed()) {
-    // Handle key press
-}
+#### Read a line
+
+```c++
+std::string line = Input::getLine("Enter a line: ");
 ```
 
-## Asynchronous Operations
+#### Check key press
+
+```c++
+if (Terminal::keyPressed()) {/*Handle key press*/}
+```
+
+## Asynchronous operations
 
 Run background task:
-```cpp
+
+```c++
 term.nonBlock([]() {
-    term.println("Processing...")
-        .setTextColor(Color::Green)
-        .println("Task complete!");
+    printer.println("Processing...")
+           .setTextColor(Color::Green)
+           .println("Task complete!");
     Terminal::sleep(1000);
 });
 ```
 
-Wait for completion (optional):
-```cpp
+Wait for completion [optional]:
+
+```c++
 term.awaitCompletion();
 ```
-All background threads are automatically waited for when the Terminal instance is destroyed.
 
-## Reference Charts
+All background threads are automatically joined when the Terminal instance is destroyed.
 
-### Text Styles Animation
+## Reference charts
+
+### Text styles
+
 <div align="center">
   <img src="assets/stylesPreview.gif" alt="Styles preview" width="500"/>
 </div>
 
-### 8-bit Color Chart
+### 8-bit color chart
+
 <div align="center">
   <img src="assets/8-bit Color Reference Chart.png" alt="8-bit Color Chart"/>
 </div>
 
-## Platform Support
-
-- Windows
-- Linux
-- macOS
-
 ## Examples
 
-For complete working examples, see [example.cpp](src/examples/example.cpp)
+For complete working examples - see the [examples](src/examples) directory
+
+## License
+
+This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
