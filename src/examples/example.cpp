@@ -1,76 +1,84 @@
 #include "Terminal++.hpp"
 
 int main() {
-    // Create a Terminal object to work with
-    Terminal terminal;
+    Printer printer;
+    // Print a simple message
+    printer.println("Hello, Terminal++!");
 
-    // Clear the terminal screen
-    Terminal::clearScreen();
+    // Apply text styling (blue text, white background, bold)
+    printer.setTextColor(Color::Blue)
+           .setBackgroundColor(Color::White)
+           .setTextStyle(TextStyle::Bold)
+           .println("Styled text!");
 
-    // Get and display the terminal size
-    auto [width, height] = Terminal::size();
-    terminal.println("Terminal Size: ", width, " x ", height);
+    // Cursor control examples
+    Cursor::moveTo(10, 5);                                // Move the cursor to (10, 5)
+    Cursor::hide();                                       // Hide the cursor
+    Cursor::show();                                       // Show the cursor
+    Cursor::setStyle(Cursor::cursorStyle::BlinkingBlock); // Set cursor to blinking block style
 
-    // Set the text color to green and print a message
-    terminal.setTextColor(Color::Green);
-    terminal.println("Welcome to Terminal++!");
+    // Screen control examples
+    Screen::clear(ClearType::All);    // Clear the entire screen including scrollback history
+    Screen::enableAlternateScreen();  // Switch to the alternate screen buffer
+    Screen::disableAlternateScreen(); // Switch back to the main screen buffer
 
-    // Set color to blue and print another message
-    terminal.setTextColor(Color::Blue);
-    terminal.println("This library supports various colors.");
+    // Input handling examples
+    char c = Input::getChar();                           // Read a single character from input
+    std::string str = Input::getString("Enter text: ");  // Read a string with a prompt
+    std::string line = Input::getLine("Enter a line: "); // Read a full line with a prompt
+    if (Terminal::keyPressed()) {
+        // Handle key press
+    }
 
-    // Set color to yellow and bold
-    terminal.setTextColor(Color::Yellow, true);
-    terminal.println("You can also print bold text!");
-
-    // Reset to normal color
-    terminal.setTextColor(Color::Reset);
-
-    // Print a message indicating how to use the library
-    terminal.println("Use Terminal::clearScreen() to clear the screen.");
-    terminal.println("Use Terminal::getChar() to read a character.");
-
-    // Move the cursor to a specific position (10, 5) and print a message
-    Terminal::moveTo(10, 5);
-    terminal.println("Cursor moved to (10, 5)!");
-
-    // Hide the cursor
-    Terminal::hideCursor();
-    terminal.println("The cursor is now hidden.");
-
-    // Demonstrating sleep function
-    terminal.println("Sleeping for 3 seconds...");
-    Terminal::sleep(3000); // Sleep for 3000 milliseconds (3 seconds)
-    terminal.println("Awoke after 3 seconds!");
-
-    // Using nonBlock to run a task asynchronously with a separate Terminal instance
-    terminal.nonBlock([]() {
-        Terminal threadTerminal; // Create a new Terminal instance for this thread
-        threadTerminal.setTextColor(Color::Red); // Set color for this thread
-        threadTerminal.println("Asynchronous task completed after 2 seconds.");
-        Terminal::sleep(2000); // Sleep for 2 seconds in a separate thread
-        threadTerminal.println("This message comes from the asynchronous thread.");
+    // Asynchronous operations example
+    Terminal term;
+    term.nonBlock([]() {
+        Printer().println("Processing...")
+                 .setTextColor(Color::Green)
+                 .println("Task complete!");
+        Terminal::sleep(1000);
     });
+    term.awaitCompletion(); // Wait for all background tasks to complete
 
-    // Additional nonBlock example with separate Terminal instance
-    terminal.nonBlock([]() {
-        Terminal threadTerminal; // Create a new Terminal instance for this thread
-        threadTerminal.setTextColor(Color::Cyan); // Set color for this thread
-        for (int i = 1; i <= 5; ++i) {
-            Terminal::sleep(1000); // Sleep for 1 second
-            threadTerminal.println("Count from non-blocking task: ", i);
-        }
-    });
+    // Terminal information examples
+    auto [width, height] = Terminal::size(); // Get the current terminal size
+    if (term.isResized()) {
+        // Handle resize
+    }
 
-    // Continue interacting with the terminal while the non-blocking tasks run
-    terminal.println("You can keep using the terminal while tasks run in the background.");
+    Terminal::setTitle("My Terminal App"); // Set the window title
 
-    // Show the cursor again
-    Terminal::showCursor();
-    terminal.println("The cursor is now visible again.");
+    // Text styles examples
+    printer.setTextStyle(TextStyle::Normal)
+           .println("Normal text");
+    printer.setTextStyle(TextStyle::Bold)
+           .println("Bold text");
+    printer.setTextStyle(TextStyle::Italic)
+           .println("Italic text");
 
-    // Finish by flushing the output
-    Terminal::flush();
+    // Basic color examples
+    printer.setTextColor(Color::Red)
+           .println("Red text");
+    printer.setTextColor(Color::Green)
+           .println("Green text");
+    printer.setTextColor(Color::Blue)
+           .println("Blue text");
+    printer.setTextColor(Color::Reset)
+           .println("Reset color");
 
-    return 0;
+    // 8-bit color examples
+    printer.setTextColor(42)
+           .println("Custom text color");
+    printer.setBackgroundColor(200)
+           .println("Custom background color");
+
+    // RGB colors
+    printer.setTextColor(Color::Rgb(255, 0, 0)) // red color
+           .println("Red text (RGB)");
+
+    Color::Rgb purpleColor(94, 60, 108);
+    printer.setBackgroundColor(purpleColor)
+           .setTextColor(Color::White)
+           .println("Purple background (RGB)");
+
 }
