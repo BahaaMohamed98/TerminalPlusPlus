@@ -30,29 +30,42 @@
 
 #endif
 
-// Enum for terminal text colors
-enum class Color {
-    Black = 30,
-    Red,
-    Green,
-    Yellow,
-    Blue,
-    Magenta,
-    Cyan,
-    White,
-    Reset = 0, // Resets to the normal color
-};
+struct Color {
+    // Enum for terminal text colors
+    enum Code {
+        Black = 30,
+        Red,
+        Green,
+        Yellow,
+        Blue,
+        Magenta,
+        Cyan,
+        White,
+        Reset = 0, // Resets to the normal color
+    };
 
-struct Rgb {
-    int r;
-    int g;
-    int b;
+    class Rgb {
+        int r;
+        int g;
+        int b;
 
-	Rgb(const int r, const int g, const int b): r(r), g(g), b(b) {}
+    private:
+        // converts an RGB color into an ANSI escape code
+        [[nodiscard]] std::string toAnsi(const bool isBackground) const {
+            return "\033[" +
+                   std::string(isBackground ? "48" : "38") + ";2;" +
+                   std::to_string(r) + ";" + std::to_string(g) + ";" + std::to_string(b) + "m";
+        }
+
+    public:
+        Rgb(const int r, const int g, const int b): r(r), g(g), b(b) {}
+
+        friend class Terminal;
+    };
 };
 
 // Enum for text styles
-enum class Style {
+enum class TextStyle {
     Normal,
     Bold,
     Dim,
@@ -91,20 +104,84 @@ enum keyCode {
 #endif
 };
 
-// Options for clearScreen()
-// "All" for a complete clear including history
-// "Purge" for clearing the visible screen while preserving history
-// "Line" for clearing just the current line
-enum class ClearType {
-    All,   // clear all plus history
-    Purge, // clear the screen leaving history
-    Line,  // clear the current line
+class Cursor {
+public:
+    enum cursorStyle {
+        Default,           // the default shape used by the user
+        BlinkingBlock,     // a blinking block `█`
+        SteadyBlock,       // a non blinking block `█`
+        BlinkingUnderline, // a blinking underline `_`
+        SteadyUnderline,   // a non blinking underline `_`
+        BlinkingBar,       // a blinking bar `|`
+        SteadyBar,         // a non blinking bar `|`
+    };
+
+    // Moves the cursor to the specified (x, y) position in the terminal
+    // starting from (1, 1) in the top left corner of the terminal
+    static void moveTo(const int& x, const int& y) {
+        std::cout << "\033[" << y << ";" << x << "H";
+    }
+
+    // Hides the cursor
+    static void hide() {
+        std::cout << "\033[?25l";
+    }
+
+    // Shows the cursor
+    static void show() {
+        std::cout << "\033[?25h";
+    }
+
+    // Sets the cursor style to the specifed style from the `cursorStyle` enum
+    static void setStyle(const cursorStyle& cursorStyle) {
+        std::cout << "\033[" << static_cast<int>(cursorStyle) << " q" << std::flush;
+    }
+};
+
+class Screen {
+    // Options for clearScreen()
+    // "All" for a complete clear including history
+    // "Purge" for clearing the visible screen while preserving history
+    // "Line" for clearing just the current line
+    enum class ClearType {
+        All,   // clear all plus history
+        Purge, // clear the screen leaving history
+        Line,  // clear the current line
+    };
+
+public:
+    // Clears the terminal screen
+    static void clear(const ClearType& cleartype = ClearType::All) {
+        switch (cleartype) {
+            case ClearType::All:
+                std::cout << "\033[2J\033[H" << std::flush;
+                break;
+            case ClearType::Purge:
+                std::cout << "\033[2J" << std::flush;
+                break;
+            case ClearType::Line:
+                std::cout << "\33[2K\r" << std::flush;
+                break;
+        }
+    }
+
+    // enables the alternate screen buffer
+    // the main screen buffer is saved and restored when switching back
+    static void enableAlternateScreen() {
+        std::cout << "\033[?1049h" << std::flush;
+    }
+
+    // disables the alternate screen buffer
+    // switches back to the main screen
+    static void disableAlternateScreen() {
+        std::cout << "\033[?1049l" << std::flush;
+    }
 };
 
 class Terminal {
     std::string textColor;       // Holds the current text color
     std::string backgroundColor; // Holds the current background color
-    Style textStyle;
+    TextStyle textStyle;
 
     struct TerminalSize {
         int width;
@@ -115,8 +192,8 @@ class Terminal {
         }
     };
 
-    TerminalSize dimensions;
-    std::vector<std::thread> threads;
+    TerminalSize dimensions;          // current terminal dimensions
+    std::vector<std::thread> threads; // storing all the nonBlocking functions to join them later
 
     // Converts a number into an ANSI escape code
     static std::string toAnsi(const int& code) {
@@ -124,60 +201,22 @@ class Terminal {
     }
 
     // Converts a Color into an ANSI escape code for the background color
-    static std::string backgroundColorToAnsi(const Color& color) {
+    static std::string backgroundColorToAnsi(const Color::Code& color) {
         if (color == Color::Reset)
-            return toAnsi(static_cast<int>(Color::Reset));
+            return toAnsi(Color::Reset);
         return toAnsi(static_cast<int>(color) + 10);
     }
 
-    // converts an RGB color into an ANSI escape code
-    static std::string RgbToAnsi(const Rgb& color_, const bool isBackground) {
-        return "\033[" +
-               std::string(isBackground ? "48" : "38") + ";2;" +
-               std::to_string(color_.r) + ";" + std::to_string(color_.g) + ";" + std::to_string(color_.b) + "m";
-    }
-
 public:
-    // Reads a single character from the terminal's unbuffered input without any processing.
-    // On Windows, uses getch() from <conio.h>.
-    // On Unix-like systems, it disables canonical mode and echoing temporarily to capture the input.
-    // This function is low-level; only use it if you plan to handle input processing manually.
-    static char getRawChar() {
-#ifdef _WIN32
-        return (char)getch();
-#else
-        termios oldattr{}, newattr{};
-        tcgetattr(STDIN_FILENO, &oldattr); // Get current terminal attributes
-        newattr = oldattr;
-        newattr.c_lflag &= ~(ICANON | ECHO);        // Disable canonical mode and echoing
-        tcsetattr(STDIN_FILENO, TCSANOW, &newattr); // Apply new attributes immediately
-        const int ch = getchar();                   // Read a single character
-        tcsetattr(STDIN_FILENO, TCSANOW, &oldattr); // Restore original attributes
-        return static_cast<char>(ch);
-#endif
-    }
-
-    explicit Terminal(const Color& textColor = Color::Reset, const Color& backgroundColor = Color::Reset)
-        : textColor(toAnsi(static_cast<int>(textColor))),
+    explicit Terminal(const Color::Code& textColor = Color::Reset, const Color::Code& backgroundColor = Color::Reset)
+        : textColor(toAnsi(textColor)),
           backgroundColor(backgroundColorToAnsi(backgroundColor)),
-          textStyle(Style::Normal), dimensions(size()) {}
+          textStyle(TextStyle::Normal), dimensions(size()) {}
 
     // Destructor ensures that all spawned threads are joined before the object is destroyed
     // to prevent potential crashes from detached threads running after the object is deleted
     ~Terminal() {
         awaitCompletion();
-    }
-
-    // Waits for all non-blocking tasks to finish before continuing
-    // Call this after starting tasks with nonBlock()
-    Terminal& awaitCompletion() {
-        for (auto& thread : threads) {
-            if (thread.joinable()) {
-                thread.join();
-            }
-        }
-        threads.clear(); // Clear the threads vector after joining
-        return *this;
     }
 
     // returns terminal size struct of (width, height)
@@ -242,21 +281,6 @@ public:
 #endif
     }
 
-    // Clears the terminal screen
-    static void clearScreen(const ClearType& cleartype = ClearType::All) {
-        switch (cleartype) {
-            case ClearType::All:
-                std::cout << "\033[2J\033[H" << std::flush;
-                break;
-            case ClearType::Purge:
-                std::cout << "\033[2J" << std::flush;
-                break;
-            case ClearType::Line:
-                std::cout << "\33[2K\r" << std::flush;
-                break;
-        }
-    }
-
     // Sleeps for specified number of milliseconds
     static void sleep(const int& milliseconds) {
         std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
@@ -274,10 +298,16 @@ public:
         return *this;
     }
 
-    // Moves the cursor to the specified (x, y) position in the terminal
-    // starting from (1, 1) in the top left corner of the terminal
-    static void moveTo(const int& x, const int& y) {
-        std::cout << "\033[" << y << ";" << x << "H";
+    // Waits for all non-blocking tasks to finish before continuing
+    // Call this after starting tasks with nonBlock()
+    Terminal& awaitCompletion() {
+        for (auto& thread : threads) {
+            if (thread.joinable()) {
+                thread.join();
+            }
+        }
+        threads.clear(); // Clear the threads vector after joining
+        return *this;
     }
 
     // Prints multiple arguments to the terminal
@@ -285,7 +315,7 @@ public:
     Terminal& print(const T& arg) {
         std::cout << backgroundColor;
 
-        if (textStyle != Style::Normal)
+        if (textStyle != TextStyle::Normal)
             std::cout << toAnsi(static_cast<int>(textStyle));
 
         if (textColor != "\033[0m") // if color is not reset, then set it as it will affect the background color
@@ -297,6 +327,7 @@ public:
         return *this;
     }
 
+    // Prints multiple arguments to the terminal
     template<typename T, typename... Args>
     Terminal& print(const T& arg, const Args&... args) {
         print(arg);
@@ -322,31 +353,9 @@ public:
         std::cout.flush();
     }
 
-    //Hides the cursor
-    static void hideCursor() {
-        std::cout << "\033[?25l";
-    }
-
-    // Shows the cursor
-    static void showCursor() {
-        std::cout << "\033[?25h";
-    }
-
-    // enables the alternate screen buffer
-    // the main screen buffer is saved and restored when switching back
-    static void enableAlternateScreen() {
-        std::cout << "\033[?1049h" << std::flush;
-    }
-
-    // disables the alternate screen buffer
-    // switches back to the main screen
-    static void disableAlternateScreen() {
-        std::cout << "\033[?1049l" << std::flush;
-    }
-
     // Sets the current text color
-    Terminal& setTextColor(const Color& color) {
-        this->textColor = toAnsi(static_cast<int>(color));
+    Terminal& setTextColor(const Color::Code& color) {
+        this->textColor = toAnsi(color);
         return *this;
     }
 
@@ -357,12 +366,13 @@ public:
     }
 
     // Sets the text color to a given Rgb value
-    Terminal& setTextColor(const Rgb& color) {
-        this->textColor = RgbToAnsi(color, false);
+    Terminal& setTextColor(const Color::Rgb& color) {
+        this->textColor = color.toAnsi(false);
         return *this;
     }
 
-    Terminal& setBackgroundColor(const Color& color) {
+    // Sets the text background color to a given ColorCode
+    Terminal& setBackgroundColor(const Color::Code& color) {
         this->backgroundColor = backgroundColorToAnsi(color);
         return *this;
     }
@@ -374,8 +384,8 @@ public:
     }
 
     // Sets the background color to a given Rgb value
-    Terminal& setBackgroundColor(const Rgb& color) {
-        this->backgroundColor = RgbToAnsi(color, true);
+    Terminal& setBackgroundColor(const Color::Rgb& color) {
+        this->backgroundColor = color.toAnsi(true);
         return *this;
     }
 
@@ -387,7 +397,7 @@ public:
     }
 
     // sets the text style
-    Terminal& setStyle(const Style& style) {
+    Terminal& setTextStyle(const TextStyle& style) {
         this->textStyle = style;
         return *this;
     }
@@ -398,6 +408,33 @@ public:
         std::cout << "\033]2;" << title << "\007";
     }
 
+    // resets all terminal attributes
+    static void reset() {
+        std::cout << "\033c" << std::flush;
+    }
+};
+
+class Input {
+public:
+    // Reads a single character from the terminal's unbuffered input without any processing.
+    // On Windows, uses getch() from <conio.h>.
+    // On Unix-like systems, it disables canonical mode and echoing temporarily to capture the input.
+    // This function is low-level; only use it if you plan to handle input processing manually.
+    static char getRawChar() {
+#ifdef _WIN32
+        return (char)getch();
+#else
+        termios oldattr{}, newattr{};
+        tcgetattr(STDIN_FILENO, &oldattr); // Get current terminal attributes
+        newattr = oldattr;
+        newattr.c_lflag &= ~(ICANON | ECHO);        // Disable canonical mode and echoing
+        tcsetattr(STDIN_FILENO, TCSANOW, &newattr); // Apply new attributes immediately
+        const int ch = getchar();                   // Read a single character
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldattr); // Restore original attributes
+        return static_cast<char>(ch);
+#endif
+    }
+
     // Reads a single character with arrow key support for Unix-like systems.
     //  Captures arrow keys by recognizing ESC sequences and interprets them accordingly.
     //  Uses getRawChar() internally to handle cross-platform compatibility.
@@ -406,9 +443,9 @@ public:
         return  getRawChar();
 #else
         char input = getRawChar();
-        if (input == 27 and keyPressed())
+        if (input == 27 and Terminal::keyPressed())
             input = getRawChar();
-        if (input == '[' and keyPressed())
+        if (input == '[' and Terminal::keyPressed())
             input = getRawChar();
         return input;
 #endif
