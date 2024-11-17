@@ -141,8 +141,9 @@ public:
     // Clears the terminal screen
     static void clear(const ClearType& cleartype = ClearType::All) {
         switch (cleartype) {
+            // might or might not work
             case ClearType::All:
-                std::cout << "\033[2J\033[H";
+                std::cout << "\e[H\e[2J\e[3J";
                 break;
             case ClearType::Purge:
                 std::cout << "\033[2J";
@@ -165,6 +166,16 @@ public:
     // switches back to the main screen
     static void disableAlternateScreen() {
         std::cout << "\033[?1049l" << std::flush;
+    }
+
+    // enables text line wrapping
+    static void enableLineWrap() {
+        std::cout << "\033[?7h" << std::flush;
+    }
+
+    // disables text line wrapping
+    static void disableLineWrap() {
+        std::cout << "\033[?7l" << std::flush;
     }
 };
 
