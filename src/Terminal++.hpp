@@ -11,7 +11,6 @@
         Author: BahaaMohamed98
  */
 
-#include <cstdlib>
 #include <functional>
 #include <iostream>
 #include <thread>
@@ -23,7 +22,6 @@
 
 #else
 
-#include <cstdio>
 #include <termios.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -125,7 +123,7 @@ public:
 
     // Sets the cursor style to the specifed style from the `cursorStyle` enum
     static void setStyle(const cursorStyle& cursorStyle) {
-        std::cout << "\033[" << static_cast<int>(cursorStyle) << " q" << std::flush;
+        std::cout << "\033[" << cursorStyle << " q" << std::flush;
     }
 };
 
