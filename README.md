@@ -117,9 +117,9 @@ Example:
 Terminal::clearScreen(ClearType::All);
 ```
 
-## Cursor control
+### Cursor control
 
-### Move cursor
+#### Move cursor
 
 ```c++
 Cursor::moveTo(10, 5);
@@ -127,13 +127,13 @@ Cursor::moveTo(10, 5);
 
 Coordinates start at [1, 1] in the top-left corner of the terminal.
 
-### Hide cursor
+#### Hide cursor
 
 ```c++
 Cursor::hideCursor();
 ```
 
-### Show cursor
+#### Show cursor
 
 ```c++
 Cursor::showCursor();
@@ -157,7 +157,7 @@ Change cursor style
 Cursor::setStyle(Cursor::BlinkingUnderline);
 ```
 
-### Terminal information
+## Terminal information
 
 #### Get size
 
@@ -178,19 +178,19 @@ int newWidth, newHeight;
 term.isResized(newWidth, newHeight);
 ```
 
-### Window title
+#### Window title
 
 ```c++
 Terminal::setTitle("My Terminal App");
 ```
 
-### Sleep operation
+#### Sleep operation
 
 ```c++
 Terminal::sleep(1000); // Sleep for 1 second
 ```
 
-### Terminal reset
+#### Terminal reset
 
 ```c++
 Terminal::reset();
