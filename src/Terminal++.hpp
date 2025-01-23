@@ -147,11 +147,9 @@ public:
                 std::cout << "\033[2J";
                 break;
             case ClearType::Line:
-                std::cout << "\33[2K\r";
+                std::cout << "\033[2K\r";
                 break;
         }
-
-        std::cout.flush();
     }
 
     // enables the alternate screen buffer
